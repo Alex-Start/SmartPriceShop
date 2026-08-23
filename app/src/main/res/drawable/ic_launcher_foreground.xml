@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Shopping cart & price tag inside safe 66dp zone -->
+    <!-- Cart Basket -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,36 L36,36 L43.5,60 L68,60 L74,42 L40,42 L39,38 L32,38 Z" />
+    <!-- Cart wheels -->
+    <path
+        android:fillColor="#89F8C7"
+        android:pathData="M46,67 A4.5,4.5 0 1,0 46,76 A4.5,4.5 0 1,0 46,67 Z" />
+    <path
+        android:fillColor="#89F8C7"
+        android:pathData="M66,67 A4.5,4.5 0 1,0 66,76 A4.5,4.5 0 1,0 66,67 Z" />
+    <!-- Price Tag Badge in cart -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M50,28 L62,28 C64.2,28 66,29.8 66,32 L66,38 L50,38 Z" />
+    <!-- Percentage symbol / dollar badge -->
+    <path
+        android:fillColor="#FFB74D"
+        android:pathData="M54,45 L62,45 L62,53 L54,53 Z" />
+</vector>

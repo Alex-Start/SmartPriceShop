@@ -1,0 +1,6 @@
+{
+  "name": "Smart Price",
+  "description": "Compare supermarket prices, track price history across shops, find the cheapest deals, and scan price tags with AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

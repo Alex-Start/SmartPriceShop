@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Smart Price</string>
+    <string name="tab_compare">Porovnat</string>
+    <string name="tab_shopping_lists">Nákupní seznamy</string>
+    <string name="tab_scanner">Čtečka</string>
+    <string name="language_english">English</string>
+    <string name="language_ukrainian">Українська</string>
+    <string name="language_czech">Čeština</string>
+</resources>
