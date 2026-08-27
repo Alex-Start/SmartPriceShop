@@ -23,14 +23,17 @@ enum class SortOption {
     PRICE_PER_GRAM,
     BIGGEST_DISCOUNT,
     NAME_AZ,
+    NAME_ZA,
+    NOTE_AZ,
+    NOTE_ZA,
     RECENTLY_UPDATED,
     MOST_SHOPS;
 
     fun getLabel(lang: AppLanguage = AppLanguage.ENGLISH): String = when (this) {
         PRICE_PER_ITEM -> when (lang) {
-            AppLanguage.ENGLISH -> "Price: Lowest Per Item"
-            AppLanguage.UKRAINIAN -> "Ціна: Від найдешевшого (за шт)"
-            AppLanguage.CZECH -> "Cena: Od nejlevnějšího (za kus)"
+            AppLanguage.ENGLISH -> "Price: per item"
+            AppLanguage.UKRAINIAN -> "Ціна: за штуку"
+            AppLanguage.CZECH -> "Cena: za kus"
         }
         PRICE_PER_GRAM -> when (lang) {
             AppLanguage.ENGLISH -> "Price: Lowest Per Gram / 100g"
@@ -46,6 +49,21 @@ enum class SortOption {
             AppLanguage.ENGLISH -> "Name (A-Z)"
             AppLanguage.UKRAINIAN -> "Назва (А-Я)"
             AppLanguage.CZECH -> "Název (A-Z)"
+        }
+        NAME_ZA -> when (lang) {
+            AppLanguage.ENGLISH -> "Name (Z-A)"
+            AppLanguage.UKRAINIAN -> "Назва (Я-А)"
+            AppLanguage.CZECH -> "Název (Z-A)"
+        }
+        NOTE_AZ -> when (lang) {
+            AppLanguage.ENGLISH -> "Note (A-Z)"
+            AppLanguage.UKRAINIAN -> "Примітка (А-Я)"
+            AppLanguage.CZECH -> "Poznámka (A-Z)"
+        }
+        NOTE_ZA -> when (lang) {
+            AppLanguage.ENGLISH -> "Note (Z-A)"
+            AppLanguage.UKRAINIAN -> "Примітка (Я-А)"
+            AppLanguage.CZECH -> "Poznámka (Z-A)"
         }
         RECENTLY_UPDATED -> when (lang) {
             AppLanguage.ENGLISH -> "Recently Updated"
@@ -201,6 +219,13 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
                 item.shopPrices.maxOfOrNull { it.priceRecord.discountPercentage } ?: 0
             }
             SortOption.NAME_AZ -> list.sortedBy { it.good.name.lowercase() }
+            SortOption.NAME_ZA -> list.sortedByDescending { it.good.name.lowercase() }
+            SortOption.NOTE_AZ -> list.sortedBy {
+                it.good.notes.ifBlank { "\uFFFF" }.lowercase()
+            }
+            SortOption.NOTE_ZA -> list.sortedByDescending {
+                it.good.notes.ifBlank { "" }.lowercase()
+            }
             SortOption.RECENTLY_UPDATED -> list.sortedByDescending { item ->
                 item.shopPrices.maxOfOrNull { it.priceRecord.updatedAt } ?: item.good.createdAt
             }
@@ -247,6 +272,18 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
     val isAiScanning = MutableStateFlow(false)
     val aiScannedResult = MutableStateFlow<AiScannedProductDto?>(null)
     val aiScanErrorMessage = MutableStateFlow<String?>(null)
+    val geminiApiKey = MutableStateFlow(prefs.getString("gemini_api_key", "") ?: "")
+
+    fun setGeminiApiKey(key: String) {
+        val trimmed = key.trim()
+        prefs.edit().putString("gemini_api_key", trimmed).apply()
+        geminiApiKey.value = trimmed
+    }
+
+    fun clearGeminiApiKey() {
+        prefs.edit().remove("gemini_api_key").apply()
+        geminiApiKey.value = ""
+    }
 
     fun clearUserMessage() {
         userMessage.value = null
@@ -609,7 +646,7 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
             aiScanErrorMessage.value = null
             aiScannedResult.value = null
 
-            val result = aiScannerService.scanPriceTagImage(bitmap)
+            val result = aiScannerService.scanPriceTagImage(bitmap, geminiApiKey.value)
             isAiScanning.value = false
 
             result.onSuccess { dto ->

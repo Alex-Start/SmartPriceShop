@@ -1,10 +1,13 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -48,6 +51,11 @@ import com.example.util.LocalAppLanguage
 import com.example.util.UnitPriceCalculator
 import java.io.File
 
+private enum class PhotoTarget {
+    PRODUCT,
+    PRICE
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditPriceDialog(
@@ -61,6 +69,8 @@ fun AddEditPriceDialog(
     initialIsPromotion: Boolean = false,
     initialNote: String? = null,
     initialPhotoUri: String? = null,
+    initialProductImageUri: String? = null,
+    initialPricePhotoUri: String? = null,
     isEditingPrice: Boolean = false,
     allShops: List<Shop>,
     allGoods: List<Good>,
@@ -135,7 +145,10 @@ fun AddEditPriceDialog(
     var packageUnit by remember { mutableStateOf(initialPackageUnit ?: initialGood?.weightUnit ?: "g") }
     var noteText by remember { mutableStateOf(initialNote ?: "") }
     var isPromotion by remember { mutableStateOf(initialIsPromotion || (initialDiscountPrice != null && initialDiscountPrice > 0)) }
-    var imagePath by remember { mutableStateOf(initialPhotoUri ?: initialGood?.imageUri) }
+    var productImagePath by remember { mutableStateOf(initialProductImageUri ?: initialGood?.imageUri ?: initialPhotoUri) }
+    var pricePhotoPath by remember { mutableStateOf(initialPricePhotoUri ?: initialPhotoUri) }
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+    var selectedPhotoTarget by remember { mutableStateOf<PhotoTarget?>(null) }
 
     // Active tooltip dialog state
     var activeTooltipTitle by remember { mutableStateOf<String?>(null) }
@@ -162,25 +175,83 @@ fun AddEditPriceDialog(
         packageUnit = weightUnit
     }
 
-    // Image Picker Launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    // Image Picker Launchers
+    fun savePickedImage(uri: Uri, prefix: String): String? {
+        return try {
+            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
+            } else {
+                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+            }
+            val file = File(context.filesDir, "${prefix}_${System.currentTimeMillis()}.jpg")
+            file.outputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    val productImagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            try {
-                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
-                } else {
-                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-                }
-                val file = File(context.filesDir, "good_${System.currentTimeMillis()}.jpg")
-                file.outputStream().use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-                }
-                imagePath = file.absolutePath
-            } catch (e: Exception) {
-                e.printStackTrace()
+            savePickedImage(uri, "product")?.let { productImagePath = it }
+        }
+    }
+
+    val pricePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            savePickedImage(uri, "price_photo")?.let { pricePhotoPath = it }
+        }
+    }
+
+    fun saveBitmapToFile(bitmap: Bitmap, prefix: String): String? {
+        return try {
+            val file = File(context.filesDir, "${prefix}_${System.currentTimeMillis()}.jpg")
+            file.outputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    val cameraPreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            val target = selectedPhotoTarget ?: return@rememberLauncherForActivityResult
+            val savedPath = saveBitmapToFile(bitmap, if (target == PhotoTarget.PRODUCT) "product" else "price_photo")
+            if (target == PhotoTarget.PRODUCT) productImagePath = savedPath else pricePhotoPath = savedPath
+            selectedPhotoTarget = null
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted: Boolean ->
+        if (granted) {
+            cameraPreviewLauncher.launch(null)
+        } else {
+            selectedPhotoTarget = null
+        }
+    }
+
+    fun launchCameraFor(target: PhotoTarget) {
+        selectedPhotoTarget = target
+        val permission = Manifest.permission.CAMERA
+        val hasPermission = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            cameraPreviewLauncher.launch(null)
+        } else {
+            cameraPermissionLauncher.launch(permission)
         }
     }
 
@@ -361,14 +432,17 @@ fun AddEditPriceDialog(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                                .clickable { imagePickerLauncher.launch("image/*") }
+                                .clickable {
+                                    selectedPhotoTarget = PhotoTarget.PRODUCT
+                                    showPhotoSourceDialog = true
+                                }
                                 .testTag("pick_good_image_button"),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (imagePath != null) {
+                            if (productImagePath != null) {
                                 AsyncImage(
-                                    model = File(imagePath!!),
-                                    contentDescription = "Goods photo",
+                                    model = File(productImagePath!!),
+                                    contentDescription = "Product photo",
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -376,12 +450,51 @@ fun AddEditPriceDialog(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(
                                         imageVector = Icons.Outlined.AddPhotoAlternate,
-                                        contentDescription = "Pick image",
+                                        contentDescription = "Pick product image",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
                                         text = AppStrings.photoLabel(lang),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        color = greyLabelColor
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    selectedPhotoTarget = PhotoTarget.PRICE
+                                    showPhotoSourceDialog = true
+                                }
+                                .testTag("pick_price_photo_button"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (pricePhotoPath != null) {
+                                AsyncImage(
+                                    model = File(pricePhotoPath!!),
+                                    contentDescription = "Price photo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ReceiptLong,
+                                        contentDescription = "Pick price photo",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Price",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                         color = greyLabelColor
                                     )
@@ -871,14 +984,14 @@ fun AddEditPriceDialog(
                                     barcodeText.ifBlank { null }?.trim(),
                                     weightText.toDoubleOrNull() ?: 0.0,
                                     weightUnit,
-                                    imagePath,
+                                    productImagePath,
                                     shopName.trim(),
                                     shopAddress.trim(),
                                     regPrice,
                                     discPrice,
                                     pkgAmount,
                                     packageUnit,
-                                    imagePath,
+                                    pricePhotoPath,
                                     isPromotion,
                                     noteText.ifBlank { null }?.trim()
                                 )
@@ -896,6 +1009,58 @@ fun AddEditPriceDialog(
                 }
             }
         }
+    }
+
+    if (showPhotoSourceDialog && selectedPhotoTarget != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showPhotoSourceDialog = false
+                selectedPhotoTarget = null
+            },
+            title = { Text("Choose photo source") },
+            text = {
+                Text(
+                    text = if (selectedPhotoTarget == PhotoTarget.PRODUCT) "Add a product picture from camera or gallery." else "Add a price tag photo from camera or gallery.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        launchCameraFor(selectedPhotoTarget!!)
+                        showPhotoSourceDialog = false
+                    }
+                ) {
+                    Text("Camera")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            when (selectedPhotoTarget) {
+                                PhotoTarget.PRODUCT -> productImagePickerLauncher.launch("image/*")
+                                PhotoTarget.PRICE -> pricePhotoPickerLauncher.launch("image/*")
+                                null -> Unit
+                            }
+                            showPhotoSourceDialog = false
+                            selectedPhotoTarget = null
+                        }
+                    ) {
+                        Text("Gallery")
+                    }
+                    TextButton(
+                        onClick = {
+                            showPhotoSourceDialog = false
+                            selectedPhotoTarget = null
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 
     // Parameter Tooltip Dialog

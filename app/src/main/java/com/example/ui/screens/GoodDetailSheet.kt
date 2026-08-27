@@ -30,6 +30,7 @@ import com.example.data.model.PriceTrend
 import com.example.data.model.ShopPriceDetail
 import com.example.ui.components.CategoryPill
 import com.example.ui.components.PriceHistoryChart
+import com.example.ui.components.ProductPhotoGallery
 import com.example.ui.components.parseColor
 import com.example.ui.theme.*
 import com.example.util.AppCurrency
@@ -78,29 +79,15 @@ fun GoodDetailSheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(HighDensityPillBg),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (item.good.imageUri != null) {
-                            AsyncImage(
-                                model = File(item.good.imageUri),
-                                contentDescription = item.good.name,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.ShoppingBag,
-                                contentDescription = null,
-                                tint = SapphireBrand,
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
-                    }
+                    ProductPhotoGallery(
+                        productImageUri = item.good.imageUri,
+                        priceImageUri = item.shopPrices.firstOrNull()?.priceRecord?.photoUri,
+                        productLabel = item.good.name,
+                        priceLabel = "${item.good.name} price photo",
+                        modifier = Modifier,
+                        thumbSize = 56.dp,
+                        spacing = 8.dp
+                    )
 
                     Spacer(modifier = Modifier.width(12.dp))
 

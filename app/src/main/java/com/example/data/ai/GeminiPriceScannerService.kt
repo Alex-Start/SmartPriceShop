@@ -31,11 +31,12 @@ class GeminiPriceScannerService {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    suspend fun scanPriceTagImage(bitmap: Bitmap): Result<AiScannedProductDto> = withContext(Dispatchers.IO) {
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
-            Log.w("GeminiScanner", "GEMINI_API_KEY is not configured in Secrets.")
-            // Provide a smart simulated fallback so the user can test the UI smoothly even without API key
+    suspend fun scanPriceTagImage(bitmap: Bitmap, apiKeyOverride: String? = null): Result<AiScannedProductDto> = withContext(Dispatchers.IO) {
+        val apiKey = (apiKeyOverride?.trim()?.takeIf { it.isNotEmpty() }
+            ?: BuildConfig.GEMINI_API_KEY.trim()).takeIf { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
+
+        if (apiKey.isNullOrBlank()) {
+            Log.w("GeminiScanner", "GEMINI_API_KEY is not configured.")
             val sampleParsed = AiScannedProductDto(
                 productName = "Fresh Organic Butter",
                 category = "Dairy",
@@ -44,7 +45,7 @@ class GeminiPriceScannerService {
                 discountPrice = 2.89,
                 packageAmount = 250.0,
                 packageUnit = "g",
-                notes = "Auto-scanned (Set GEMINI_API_KEY in Secrets for live AI)"
+                notes = "AI key not configured. Set it in app settings to enable live AI scan."
             )
             return@withContext Result.success(sampleParsed)
         }
