@@ -51,13 +51,13 @@ app/src/main/java/com/example/
 │   │   ├── AppDatabase.kt                 # Room Database definition & type converters
 │   │   └── Dao.kt                         # GoodDao, ShopDao, PriceRecordDao, ShoppingListDao
 │   ├── model/
-│   │   ├── Good.kt                        # Good entity (name, category, barcode, image)
-│   │   ├── Shop.kt                        # Shop entity (name, address, color, icon)
-│   │   ├── PriceRecord.kt                 # PriceRecord entity (shopId, goodId, regular, discount)
-│   │   ├── PriceHistory.kt                # PriceHistory log entity
+│   │   ├── Good.kt                        # Good entity (name, category, barcode, imageUri, unitType, weight)
+│   │   ├── Shop.kt                        # Shop entity (name, address, colorHex, notes)
+│   │   ├── PriceRecord.kt                 # PriceRecord (regularPrice, discountPrice, pricePerUnit, unitMeasureLabel, currencyCode, photoUri)
+│   │   ├── PriceHistory.kt                # PriceHistory (audit record; preserves currencyCode & photoUri)
 │   │   ├── Category.kt                    # Category entity (name, color, icon)
-│   │   ├── ShoppingListModels.kt          # ShoppingList and ShoppingListItem entities
-│   │   └── ComparisonModels.kt            # Aggregated domain DTOs (GoodWithPrices, ShopPriceDetail)
+│   │   ├── ShoppingListModels.kt          # ShoppingList and ShoppingListItem entities (estimates & preferred shop)
+│   │   └── ComparisonModels.kt            # DTOs: GoodWithPrices, ShopPriceDetail, PriceTrend enum, Backup DTOs
 │   └── repository/
 │       └── SupermarketRepository.kt       # Single source of truth for DB operations
 ├── ui/
@@ -82,7 +82,8 @@ app/src/main/java/com/example/
 │       └── Type.kt                        # Typography definitions
 ├── util/
 │   ├── Localization.kt                    # AppLanguage & AppStrings repository (EN, UK, CS)
-│   └── UnitPriceCalculator.kt             # Unit price calculation & currency formatting utilities
+│   ├── UnitPriceCalculator.kt             # Unit price calculation & currency formatting utilities
+│   └── CurrencyRates.kt                   # Manual per-device currency rates and conversion utilities (prefs)
 ├── MainActivity.kt                        # Single activity entry point with edge-to-edge
 └── SupermarketApplication.kt              # Application class initializing Room DB
 ```
@@ -134,8 +135,10 @@ CREATE TABLE goods (
     name TEXT NOT NULL,
     category TEXT NOT NULL,
     barcode TEXT,
-    imageUri TEXT,
-    weight REAL NOT NULL DEFAULT 0.0,
+    imageUri TEXT,                 -- product photo (how the product looks)
+    unitType TEXT NOT NULL DEFAULT 'per 100g', -- display unit type
+    defaultQuantity REAL NOT NULL DEFAULT 1.0,
+    weight REAL NOT NULL DEFAULT 0.0, -- e.g. 500.0 for 500g
     weightUnit TEXT NOT NULL DEFAULT 'g',
     notes TEXT,
     createdAt INTEGER NOT NULL
@@ -145,9 +148,10 @@ CREATE TABLE goods (
 CREATE TABLE shops (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name TEXT NOT NULL,
-    address TEXT NOT NULL,
+    address TEXT,
     colorHex TEXT NOT NULL,
-    iconName TEXT NOT NULL
+    notes TEXT,
+    createdAt INTEGER NOT NULL
 );
 
 -- Price Records table (Current active prices per shop)
@@ -158,10 +162,14 @@ CREATE TABLE price_records (
     regularPrice REAL NOT NULL,
     discountPrice REAL,
     packageAmount REAL NOT NULL DEFAULT 1.0,
-    packageUnit TEXT NOT NULL DEFAULT 'pcs',
+    packageUnit TEXT NOT NULL DEFAULT 'g',
+    pricePerUnit REAL NOT NULL DEFAULT 0.0,   -- standardized unit price
+    unitMeasureLabel TEXT NOT NULL DEFAULT '$/100g',
     isPromotion INTEGER NOT NULL DEFAULT 0,
-    recordedAt INTEGER NOT NULL,
-    photoUri TEXT,
+    promoEndDate INTEGER,
+    photoUri TEXT,                            -- AI scan / price tag photo
+    currencyCode TEXT NOT NULL DEFAULT 'CZK', -- original currency for the record
+    updatedAt INTEGER NOT NULL,
     FOREIGN KEY(goodId) REFERENCES goods(id) ON DELETE CASCADE,
     FOREIGN KEY(shopId) REFERENCES shops(id) ON DELETE CASCADE
 );
@@ -171,9 +179,15 @@ CREATE TABLE price_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     goodId INTEGER NOT NULL,
     shopId INTEGER NOT NULL,
-    price REAL NOT NULL,
-    isDiscount INTEGER NOT NULL DEFAULT 0,
-    timestamp INTEGER NOT NULL,
+    regularPrice REAL NOT NULL,
+    discountPrice REAL,
+    packageAmount REAL NOT NULL DEFAULT 1.0,
+    packageUnit TEXT NOT NULL DEFAULT 'g',
+    pricePerUnit REAL NOT NULL DEFAULT 0.0,
+    note TEXT,
+    photoUri TEXT,
+    currencyCode TEXT NOT NULL DEFAULT 'CZK',
+    recordedAt INTEGER NOT NULL,
     FOREIGN KEY(goodId) REFERENCES goods(id) ON DELETE CASCADE,
     FOREIGN KEY(shopId) REFERENCES shops(id) ON DELETE CASCADE
 );
@@ -212,3 +226,9 @@ The following items are prioritized for subsequent development sessions:
 3. **Geo-Location Store Detection:** Automatically suggest the nearest supermarket based on GPS coordinates.
 4. **Inflation & Price Fluctuation Alerts:** Highlight products whose price has increased by more than X% over the last 30/90 days.
 5. **Interactive Price History Graph:** Enhance the canvas chart with pinch-to-zoom and multi-store overlay lines.
+
+## 9. Developer Notes & Future Improvements
+
+A focused follow-up checklist is available in FUTURE_IMPROVEMENTS.md. It covers critical items discovered during migration and feature additions — especially currency consistency, graph dataset conversion, dual-image UX, dark-mode contrast fixes, Room migrations, and remaining hardcoded currency formatting issues.
+
+Please review FUTURE_IMPROVEMENTS.md and create small targeted PRs for each high-priority item (currency sweep, graph conversion, hardcoded string replacements, and UI contrast tests).
