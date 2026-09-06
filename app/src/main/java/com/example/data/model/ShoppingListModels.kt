@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.example.util.AppStrings
 import com.squareup.moshi.JsonClass
 
 @Entity(tableName = "shopping_lists")
@@ -40,7 +41,7 @@ data class ShoppingListItem(
     val listId: Long,
     val goodId: Long? = null,
     val name: String,
-    val category: String = "Groceries",
+    val category: String = AppStrings.defaultCategories.first(),
     val quantity: Double = 1.0,
     val unit: String = "pcs", // "pcs", "pack", "g", "kg", "ml", "L"
     val weight: Double = 0.0,

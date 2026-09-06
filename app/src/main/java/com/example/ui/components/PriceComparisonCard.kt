@@ -143,6 +143,9 @@ fun PriceComparisonCard(
     onClick: () -> Unit,
     onAddPriceClick: () -> Unit,
     onAddToListClick: () -> Unit,
+    // converter: convert stored amount (in record currency) to display amount in current app currency
+    convertAmountForDisplay: (Double, String?) -> Double,
+    formatAmountForDisplay: (Double, String?) -> String,
     modifier: Modifier = Modifier
 ) {
     val lang = LocalAppLanguage.current
@@ -204,8 +207,10 @@ fun PriceComparisonCard(
                         if (item.cheapestShopDetail != null) {
                             val cheapest = item.cheapestShopDetail
                             val isDiscount = cheapest.priceRecord.discountPrice != null && cheapest.priceRecord.discountPrice > 0
+                            // convert stored amount -> display currency
+                            val convertedStr = formatAmountForDisplay(cheapest.priceRecord.effectivePrice, cheapest.priceRecord.currencyCode)
                             Text(
-                                text = UnitPriceCalculator.formatCurrency(cheapest.priceRecord.effectivePrice, currentCurrency),
+                                text = convertedStr,
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = if (isDiscount) DealGreen else MaterialTheme.colorScheme.onSurface
@@ -222,9 +227,12 @@ fun PriceComparisonCard(
                         val cheapest = item.cheapestShopDetail
                         val weightStr = if (item.good.weight > 0) " (${UnitPriceCalculator.formatWeight(item.good.weight, item.good.weightUnit)})" else ""
                         val pricePerGramStr = if (item.good.weight > 0) {
-                            " • ${UnitPriceCalculator.formatPricePerGram(cheapest.priceRecord.effectivePrice, item.good.weight, item.good.weightUnit, currency = currentCurrency)}"
+                            // convert numeric price to display currency then format
+                            val converted = convertAmountForDisplay(cheapest.priceRecord.effectivePrice, cheapest.priceRecord.currencyCode)
+                            " • ${UnitPriceCalculator.formatPricePerGram(converted, item.good.weight, item.good.weightUnit, currency = currentCurrency)}"
                         } else if (cheapest.priceRecord.pricePerUnit > 0) {
-                            " • ${UnitPriceCalculator.formatUnitPrice(cheapest.priceRecord.pricePerUnit, cheapest.priceRecord.unitMeasureLabel, currentCurrency)}"
+                            val convertedUnit = convertAmountForDisplay(cheapest.priceRecord.pricePerUnit, cheapest.priceRecord.currencyCode)
+                            " • ${UnitPriceCalculator.formatUnitPrice(convertedUnit, cheapest.priceRecord.unitMeasureLabel, currentCurrency)}"
                         } else ""
 
                         Text(
@@ -317,7 +325,7 @@ fun PriceComparisonCard(
 
                             if (isDiscount) {
                                 Text(
-                                    text = "${AppStrings.prevPrice(lang)} ${UnitPriceCalculator.formatCurrency(cheapest.priceRecord.regularPrice, currentCurrency)}",
+                                    text = "${AppStrings.prevPrice(lang)} ${UnitPriceCalculator.formatCurrencyWithConversion(cheapest.priceRecord.regularPrice, cheapest.priceRecord.currencyCode, currentCurrency)}",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 10.sp,
                                         color = HighDensityTextMuted,
@@ -434,7 +442,7 @@ fun ShopPriceChip(
 
         // Price
         Text(
-            text = UnitPriceCalculator.formatCurrency(shopPrice.priceRecord.effectivePrice, currentCurrency),
+            text = UnitPriceCalculator.formatCurrencyWithConversion(shopPrice.priceRecord.effectivePrice, shopPrice.priceRecord.currencyCode, currentCurrency),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,

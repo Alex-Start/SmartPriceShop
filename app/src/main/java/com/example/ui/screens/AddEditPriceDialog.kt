@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,16 +98,23 @@ fun AddEditPriceDialog(
         note: String?
     ) -> Unit,
     onOpenAiScanner: () -> Unit,
-    onOpenBarcodeScanner: () -> Unit
+    onOpenBarcodeScanner: () -> Unit,
+    // Callbacks so HomeScreen can persist images into ViewModel draft before rotation
+    onProductImageSaved: (String?) -> Unit = {},
+    onPricePhotoSaved: (String?) -> Unit = {},
+    // Pending photo target name from ViewModel (to recover if local state lost)
+    pendingPhotoTargetNameFromVm: String? = null,
+    // Callback to set/clear pending photo target name in ViewModel
+    onSetPendingPhotoTargetName: (String?) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lang = LocalAppLanguage.current
     val currentCurrency = LocalAppCurrency.current
 
-    var goodName by remember { mutableStateOf(initialGood?.name ?: "") }
-    var selectedCategory by remember { mutableStateOf(initialGood?.category ?: "Dairy") }
-    var barcodeText by remember { mutableStateOf(initialGood?.barcode ?: initialBarcode ?: "") }
-    var weightText by remember {
+    var goodName by rememberSaveable { mutableStateOf(initialGood?.name ?: "") }
+    var selectedCategory by rememberSaveable { mutableStateOf(initialGood?.category ?: AppStrings.defaultCategories.first()) }
+    var barcodeText by rememberSaveable { mutableStateOf(initialGood?.barcode ?: initialBarcode ?: "") }
+    var weightText by rememberSaveable {
         mutableStateOf(
             if (initialGood != null && initialGood.weight > 0) {
                 if (initialGood.weight == initialGood.weight.toInt().toDouble()) "${initialGood.weight.toInt()}" else "${initialGood.weight}"
@@ -115,25 +123,25 @@ fun AddEditPriceDialog(
             } else "500"
         )
     }
-    var weightUnit by remember { mutableStateOf(initialGood?.weightUnit ?: initialPackageUnit ?: "g") }
+    var weightUnit by rememberSaveable { mutableStateOf(initialGood?.weightUnit ?: initialPackageUnit ?: "g") }
 
-    var shopName by remember { mutableStateOf(initialShop?.name ?: (allShops.firstOrNull()?.name ?: "Tesco")) }
-    var shopAddress by remember { mutableStateOf(initialShop?.address ?: "") }
-    var regularPriceText by remember {
+    var shopName by rememberSaveable { mutableStateOf(initialShop?.name ?: (allShops.firstOrNull()?.name ?: "Tesco")) }
+    var shopAddress by rememberSaveable { mutableStateOf(initialShop?.address ?: "") }
+    var regularPriceText by rememberSaveable {
         mutableStateOf(
             if (initialRegularPrice != null && initialRegularPrice > 0) {
                 if (initialRegularPrice == initialRegularPrice.toInt().toDouble()) "${initialRegularPrice.toInt()}" else "$initialRegularPrice"
             } else ""
         )
     }
-    var discountPriceText by remember {
+    var discountPriceText by rememberSaveable {
         mutableStateOf(
             if (initialDiscountPrice != null && initialDiscountPrice > 0) {
                 if (initialDiscountPrice == initialDiscountPrice.toInt().toDouble()) "${initialDiscountPrice.toInt()}" else "$initialDiscountPrice"
             } else ""
         )
     }
-    var packageAmountText by remember {
+    var packageAmountText by rememberSaveable {
         mutableStateOf(
             if (initialPackageAmount != null && initialPackageAmount > 0) {
                 if (initialPackageAmount == initialPackageAmount.toInt().toDouble()) "${initialPackageAmount.toInt()}" else "$initialPackageAmount"
@@ -142,13 +150,14 @@ fun AddEditPriceDialog(
             } else "500"
         )
     }
-    var packageUnit by remember { mutableStateOf(initialPackageUnit ?: initialGood?.weightUnit ?: "g") }
-    var noteText by remember { mutableStateOf(initialNote ?: "") }
-    var isPromotion by remember { mutableStateOf(initialIsPromotion || (initialDiscountPrice != null && initialDiscountPrice > 0)) }
-    var productImagePath by remember { mutableStateOf(initialProductImageUri ?: initialGood?.imageUri ?: initialPhotoUri) }
-    var pricePhotoPath by remember { mutableStateOf(initialPricePhotoUri ?: initialPhotoUri) }
-    var showPhotoSourceDialog by remember { mutableStateOf(false) }
-    var selectedPhotoTarget by remember { mutableStateOf<PhotoTarget?>(null) }
+    var packageUnit by rememberSaveable { mutableStateOf(initialPackageUnit ?: initialGood?.weightUnit ?: "g") }
+    var noteText by rememberSaveable { mutableStateOf(initialNote ?: "") }
+    var isPromotion by rememberSaveable { mutableStateOf(initialIsPromotion || (initialDiscountPrice != null && initialDiscountPrice > 0)) }
+    var productImagePath by rememberSaveable { mutableStateOf(initialProductImageUri ?: initialGood?.imageUri ?: initialPhotoUri) }
+    var pricePhotoPath by rememberSaveable { mutableStateOf(initialPricePhotoUri ?: initialPhotoUri) }
+    var showPhotoSourceDialog by rememberSaveable { mutableStateOf(false) }
+    // Persist which photo target was requested across rotation: save the enum name string
+    var selectedPhotoTargetName by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Active tooltip dialog state
     var activeTooltipTitle by remember { mutableStateOf<String?>(null) }
@@ -159,7 +168,7 @@ fun AddEditPriceDialog(
         if (allCategories.isNotEmpty()) {
             allCategories.map { it.name }
         } else {
-            listOf("Dairy", "Fruits & Veg", "Meat & Fish", "Bakery", "Beverages", "Pantry", "Snacks", "Household", "Other")
+            AppStrings.defaultCategories
         }
     }
 
@@ -198,7 +207,10 @@ fun AddEditPriceDialog(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            savePickedImage(uri, "product")?.let { productImagePath = it }
+            savePickedImage(uri, "product")?.let {
+                productImagePath = it
+                onProductImageSaved(it)
+            }
         }
     }
 
@@ -206,7 +218,10 @@ fun AddEditPriceDialog(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            savePickedImage(uri, "price_photo")?.let { pricePhotoPath = it }
+            savePickedImage(uri, "price_photo")?.let {
+                pricePhotoPath = it
+                onPricePhotoSaved(it)
+            }
         }
     }
 
@@ -227,10 +242,18 @@ fun AddEditPriceDialog(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         if (bitmap != null) {
-            val target = selectedPhotoTarget ?: return@rememberLauncherForActivityResult
+            val targetName = selectedPhotoTargetName ?: pendingPhotoTargetNameFromVm
+            val target = targetName?.let { PhotoTarget.valueOf(it) } ?: return@rememberLauncherForActivityResult
             val savedPath = saveBitmapToFile(bitmap, if (target == PhotoTarget.PRODUCT) "product" else "price_photo")
-            if (target == PhotoTarget.PRODUCT) productImagePath = savedPath else pricePhotoPath = savedPath
-            selectedPhotoTarget = null
+            if (target == PhotoTarget.PRODUCT) {
+                productImagePath = savedPath
+                onProductImageSaved(savedPath)
+            } else {
+                pricePhotoPath = savedPath
+                onPricePhotoSaved(savedPath)
+            }
+            selectedPhotoTargetName = null
+            onSetPendingPhotoTargetName(null)
         }
     }
 
@@ -240,12 +263,14 @@ fun AddEditPriceDialog(
         if (granted) {
             cameraPreviewLauncher.launch(null)
         } else {
-            selectedPhotoTarget = null
+            selectedPhotoTargetName = null
+            onSetPendingPhotoTargetName(null)
         }
     }
 
     fun launchCameraFor(target: PhotoTarget) {
-        selectedPhotoTarget = target
+        selectedPhotoTargetName = target.name
+        onSetPendingPhotoTargetName(target.name)
         val permission = Manifest.permission.CAMERA
         val hasPermission = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
         if (hasPermission) {
@@ -433,7 +458,7 @@ fun AddEditPriceDialog(
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                 .clickable {
-                                    selectedPhotoTarget = PhotoTarget.PRODUCT
+                                    selectedPhotoTargetName = PhotoTarget.PRODUCT.name
                                     showPhotoSourceDialog = true
                                 }
                                 .testTag("pick_good_image_button"),
@@ -472,7 +497,7 @@ fun AddEditPriceDialog(
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                 .clickable {
-                                    selectedPhotoTarget = PhotoTarget.PRICE
+                                    selectedPhotoTargetName = PhotoTarget.PRICE.name
                                     showPhotoSourceDialog = true
                                 }
                                 .testTag("pick_price_photo_button"),
@@ -1011,16 +1036,17 @@ fun AddEditPriceDialog(
         }
     }
 
-    if (showPhotoSourceDialog && selectedPhotoTarget != null) {
+    if (showPhotoSourceDialog && selectedPhotoTargetName != null) {
         AlertDialog(
             onDismissRequest = {
                 showPhotoSourceDialog = false
-                selectedPhotoTarget = null
+                selectedPhotoTargetName = null
+                onSetPendingPhotoTargetName(null)
             },
             title = { Text("Choose photo source") },
             text = {
                 Text(
-                    text = if (selectedPhotoTarget == PhotoTarget.PRODUCT) "Add a product picture from camera or gallery." else "Add a price tag photo from camera or gallery.",
+                    text = if (selectedPhotoTargetName == PhotoTarget.PRODUCT.name) "Add a product picture from camera or gallery." else "Add a price tag photo from camera or gallery.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1028,7 +1054,10 @@ fun AddEditPriceDialog(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        launchCameraFor(selectedPhotoTarget!!)
+                        // convert saved name back to enum safely and launch camera
+                        selectedPhotoTargetName?.let { name ->
+                            launchCameraFor(PhotoTarget.valueOf(name))
+                        }
                         showPhotoSourceDialog = false
                     }
                 ) {
@@ -1039,13 +1068,15 @@ fun AddEditPriceDialog(
                 Row {
                     TextButton(
                         onClick = {
-                            when (selectedPhotoTarget) {
+                            val st = selectedPhotoTargetName?.let { PhotoTarget.valueOf(it) }
+                            when (st) {
                                 PhotoTarget.PRODUCT -> productImagePickerLauncher.launch("image/*")
                                 PhotoTarget.PRICE -> pricePhotoPickerLauncher.launch("image/*")
                                 null -> Unit
                             }
                             showPhotoSourceDialog = false
-                            selectedPhotoTarget = null
+                            selectedPhotoTargetName = null
+                            onSetPendingPhotoTargetName(null)
                         }
                     ) {
                         Text("Gallery")
@@ -1053,7 +1084,8 @@ fun AddEditPriceDialog(
                     TextButton(
                         onClick = {
                             showPhotoSourceDialog = false
-                            selectedPhotoTarget = null
+                            selectedPhotoTargetName = null
+                            onSetPendingPhotoTargetName(null)
                         }
                     ) {
                         Text("Cancel")

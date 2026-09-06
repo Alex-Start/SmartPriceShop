@@ -21,6 +21,10 @@ data class GoodWithPrices(
     val shopPrices: List<ShopPriceDetail>,
     val cheapestShopDetail: ShopPriceDetail? = null,
     val priceRangeText: String = "",
+    val priceMin: Double? = null,
+    val priceMinCurrencyCode: String? = null,
+    val priceMax: Double? = null,
+    val priceMaxCurrencyCode: String? = null,
     val totalShopsRecorded: Int = 0
 )
 

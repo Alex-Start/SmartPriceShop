@@ -27,6 +27,7 @@ import com.example.data.model.Good
 import com.example.data.model.ShoppingListWithItems
 import com.example.ui.theme.*
 import com.example.util.UnitPriceCalculator
+import com.example.util.LocalAppCurrency
 
 @Composable
 fun AddToShoppingListDialog(
@@ -39,6 +40,7 @@ fun AddToShoppingListDialog(
     var quantity by remember { mutableDoubleStateOf(1.0) }
     var showCreateNewList by remember { mutableStateOf(false) }
     var newListName by remember { mutableStateOf("") }
+    val currentCurrency = LocalAppCurrency.current
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -271,7 +273,7 @@ fun AddToShoppingListDialog(
                                                     )
                                                 )
                                                 Text(
-                                                    text = "${item.totalItemCount} items • ${UnitPriceCalculator.formatCurrency(item.totalEstimatedCost)}",
+                                                                                                    text = "${item.totalItemCount} items • ${UnitPriceCalculator.formatCurrencyWithConversion(item.totalEstimatedCost, null, currentCurrency)}",
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontSize = 10.sp,
                                                         color = HighDensityTextSecondary

@@ -3,6 +3,7 @@ package com.example.data.model
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.example.util.AppCurrency
 import com.squareup.moshi.JsonClass
 
 @Entity(
@@ -28,6 +29,7 @@ data class PriceRecord(
     val isPromotion: Boolean = false,
     val promoEndDate: Long? = null,
     val photoUri: String? = null,
+    val currencyCode: String = AppCurrency.CZK.code,
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     val effectivePrice: Double

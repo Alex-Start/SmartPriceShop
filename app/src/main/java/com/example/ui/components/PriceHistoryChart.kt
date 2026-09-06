@@ -74,6 +74,9 @@ fun PriceHistoryChart(
     val textMeasurer = rememberTextMeasurer()
     val minPrice = sorted.minOf { it.history.effectivePrice }
     val maxPrice = sorted.maxOf { it.history.effectivePrice }
+    // Convert min/max to currently selected currency for labeling
+    val minPriceConv = sorted.minOf { com.example.util.CurrencyRates.convert(it.history.effectivePrice, it.history.currencyCode, currentCurrency.code) }
+    val maxPriceConv = sorted.maxOf { com.example.util.CurrencyRates.convert(it.history.effectivePrice, it.history.currencyCode, currentCurrency.code) }
     val priceSpan = (maxPrice - minPrice).coerceAtLeast(0.5)
 
     Card(
@@ -113,8 +116,12 @@ fun PriceHistoryChart(
                 val latest = sorted.lastOrNull()?.history?.effectivePrice ?: 0.0
                 val earliest = sorted.firstOrNull()?.history?.effectivePrice ?: 0.0
                 if (sorted.size > 1) {
-                    val isCheaper = latest < earliest
-                    val diff = Math.abs(latest - earliest)
+                    val latestRaw = sorted.lastOrNull()?.history?.effectivePrice ?: 0.0
+                    val earliestRaw = sorted.firstOrNull()?.history?.effectivePrice ?: 0.0
+                    val latestConv = sorted.lastOrNull()?.let { com.example.util.CurrencyRates.convert(it.history.effectivePrice, it.history.currencyCode, currentCurrency.code) } ?: latestRaw
+                    val earliestConv = sorted.firstOrNull()?.let { com.example.util.CurrencyRates.convert(it.history.effectivePrice, it.history.currencyCode, currentCurrency.code) } ?: earliestRaw
+                    val isCheaper = latestConv < earliestConv
+                    val diff = Math.abs(latestConv - earliestConv)
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -171,7 +178,7 @@ fun PriceHistoryChart(
                 )
                 drawText(
                     textMeasurer = textMeasurer,
-                    text = currentCurrency.format(maxPrice),
+                text = currentCurrency.format(maxPriceConv),
                     topLeft = Offset(0f, padTop - 10f),
                     style = labelStyle
                 )
@@ -184,7 +191,7 @@ fun PriceHistoryChart(
                 )
                 drawText(
                     textMeasurer = textMeasurer,
-                    text = currentCurrency.format(minPrice),
+                    text = currentCurrency.format(minPriceConv),
                     topLeft = Offset(0f, padTop + chartH - 10f),
                     style = labelStyle
                 )
@@ -288,7 +295,7 @@ fun PriceHistoryChart(
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = UnitPriceCalculator.formatCurrency(item.history.effectivePrice, currentCurrency),
+                            text = UnitPriceCalculator.formatCurrencyWithConversion(item.history.effectivePrice, item.history.currencyCode, currentCurrency),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,

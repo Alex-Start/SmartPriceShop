@@ -16,14 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.data.model.GoodWithPrices
 import com.example.data.model.PriceHistoryWithShop
 import com.example.data.model.PriceTrend
@@ -33,12 +30,10 @@ import com.example.ui.components.PriceHistoryChart
 import com.example.ui.components.ProductPhotoGallery
 import com.example.ui.components.parseColor
 import com.example.ui.theme.*
-import com.example.util.AppCurrency
 import com.example.util.AppStrings
 import com.example.util.LocalAppCurrency
 import com.example.util.LocalAppLanguage
 import com.example.util.UnitPriceCalculator
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -330,7 +325,8 @@ fun DetailShopPriceCard(
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
     val pricePerGramStr = if (goodWeight > 0) {
-        UnitPriceCalculator.formatPricePerGram(shopPrice.priceRecord.effectivePrice, goodWeight, goodWeightUnit, includeDetailedGram = true, currency = currentCurrency)
+        val converted = com.example.util.CurrencyRates.convert(shopPrice.priceRecord.effectivePrice, shopPrice.priceRecord.currencyCode, currentCurrency.code)
+        UnitPriceCalculator.formatPricePerGram(converted, goodWeight, goodWeightUnit, includeDetailedGram = true, currency = currentCurrency)
     } else null
 
     Card(
@@ -407,7 +403,7 @@ fun DetailShopPriceCard(
                 // Prices
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = UnitPriceCalculator.formatCurrency(shopPrice.priceRecord.effectivePrice, currentCurrency),
+                        text = UnitPriceCalculator.formatCurrencyWithConversion(shopPrice.priceRecord.effectivePrice, shopPrice.priceRecord.currencyCode, currentCurrency),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = if (isCheapest) DealGreen else MaterialTheme.colorScheme.onSurface
@@ -415,7 +411,7 @@ fun DetailShopPriceCard(
                     )
                     if (shopPrice.priceRecord.discountPrice != null && shopPrice.priceRecord.regularPrice > shopPrice.priceRecord.discountPrice) {
                         Text(
-                            text = UnitPriceCalculator.formatCurrency(shopPrice.priceRecord.regularPrice, currentCurrency),
+                            text = UnitPriceCalculator.formatCurrencyWithConversion(shopPrice.priceRecord.regularPrice, shopPrice.priceRecord.currencyCode, currentCurrency),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 textDecoration = TextDecoration.LineThrough,
                                 fontSize = 11.sp

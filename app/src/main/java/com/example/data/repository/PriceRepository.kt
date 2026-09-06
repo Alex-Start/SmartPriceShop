@@ -8,8 +8,19 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import android.content.Context
+import com.example.util.AppCurrency
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.ByteArrayOutputStream
+import java.io.FileInputStream
+import java.io.InputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+import java.io.File
+import java.io.FileOutputStream
 
 class PriceRepository(private val database: AppDatabase) {
 
@@ -96,24 +107,37 @@ class PriceRepository(private val database: AppDatabase) {
                 }
             }.sortedBy { it.priceRecord.effectivePrice }
 
-            val priceRange = if (markedDetails.isEmpty()) {
-                "No price recorded yet"
-            } else if (markedDetails.size == 1) {
-                UnitPriceCalculator.formatCurrency(markedDetails.first().priceRecord.effectivePrice)
-            } else {
-                val min = markedDetails.minOf { it.priceRecord.effectivePrice }
-                val max = markedDetails.maxOf { it.priceRecord.effectivePrice }
-                "${UnitPriceCalculator.formatCurrency(min)} - ${UnitPriceCalculator.formatCurrency(max)}"
-            }
+                // compute numeric min/max (note: currencies might differ across shops; min/max are raw effectivePrice values as stored)
+                val priceMinVal = if (markedDetails.isEmpty()) null else markedDetails.minOf { it.priceRecord.effectivePrice }
+                val priceMaxVal = if (markedDetails.isEmpty()) null else markedDetails.maxOf { it.priceRecord.effectivePrice }
 
-            GoodWithPrices(
-                good = good,
-                shopPrices = markedDetails,
-                cheapestShopDetail = cheapestShopDetail,
-                priceRangeText = priceRange,
-                totalShopsRecorded = markedDetails.size
-            )
-        }
+                val priceRange = if (markedDetails.isEmpty()) {
+                    "No price recorded yet"
+                } else if (markedDetails.size == 1) {
+                    val r = markedDetails.first().priceRecord
+                    UnitPriceCalculator.formatCurrencyWithConversion(r.effectivePrice, r.currencyCode, AppCurrency.CZK)
+                } else {
+                    val min = priceMinVal ?: 0.0
+                    val max = priceMaxVal ?: 0.0
+                    val minRecord = markedDetails.minByOrNull { it.priceRecord.effectivePrice }?.priceRecord
+                    val maxRecord = markedDetails.maxByOrNull { it.priceRecord.effectivePrice }?.priceRecord
+                    val minStr = if (minRecord != null) UnitPriceCalculator.formatCurrencyWithConversion(min, minRecord.currencyCode, AppCurrency.CZK) else UnitPriceCalculator.formatCurrencyWithConversion(min)
+                    val maxStr = if (maxRecord != null) UnitPriceCalculator.formatCurrencyWithConversion(max, maxRecord.currencyCode, AppCurrency.CZK) else UnitPriceCalculator.formatCurrencyWithConversion(max)
+                    "${minStr} - ${maxStr}"
+                }
+
+                GoodWithPrices(
+                    good = good,
+                    shopPrices = markedDetails,
+                    cheapestShopDetail = cheapestShopDetail,
+                    priceRangeText = "",
+                    priceMin = priceMinVal,
+                    priceMinCurrencyCode = markedDetails.minByOrNull { it.priceRecord.effectivePrice }?.priceRecord?.currencyCode,
+                    priceMax = priceMaxVal,
+                    priceMaxCurrencyCode = markedDetails.maxByOrNull { it.priceRecord.effectivePrice }?.priceRecord?.currencyCode,
+                    totalShopsRecorded = markedDetails.size
+                )
+            }
     }
 
     /**
@@ -190,7 +214,8 @@ class PriceRepository(private val database: AppDatabase) {
         packageUnit: String = "g",
         photoUri: String? = null,
         isPromotion: Boolean = false,
-        note: String? = null
+        note: String? = null,
+        currencyCode: String = AppCurrency.CZK.code
     ): Long = withContext(Dispatchers.IO) {
         val effectivePrice = if (discountPrice != null && discountPrice > 0 && discountPrice < regularPrice) discountPrice else regularPrice
         val (unitPrice, unitLabel) = UnitPriceCalculator.calculateUnitPrice(effectivePrice, packageAmount, packageUnit)
@@ -209,6 +234,7 @@ class PriceRepository(private val database: AppDatabase) {
             pricePerUnit = unitPrice,
             note = note,
             photoUri = photoUri ?: existing?.photoUri,
+            currencyCode = currencyCode,
             recordedAt = now
         )
         priceHistoryDao.insertHistory(historyEntry)
@@ -226,6 +252,7 @@ class PriceRepository(private val database: AppDatabase) {
             unitMeasureLabel = unitLabel,
             isPromotion = isPromotion || (discountPrice != null && discountPrice > 0.0),
             photoUri = photoUri ?: existing?.photoUri,
+            currencyCode = currencyCode,
             updatedAt = now
         )
         priceRecordDao.insertPriceRecord(newRecord)
@@ -296,7 +323,7 @@ class PriceRepository(private val database: AppDatabase) {
         categoryDao.deleteCategoryById(categoryId)
     }
 
-    suspend fun seedDefaultCategoriesIfEmpty() = withContext(Dispatchers.IO) {
+    /*suspend fun seedDefaultCategoriesIfEmpty() = withContext(Dispatchers.IO) {
         val list = categoryDao.getAllCategoriesList()
         if (list.isEmpty()) {
             val defaults = listOf(
@@ -312,7 +339,23 @@ class PriceRepository(private val database: AppDatabase) {
             )
             categoryDao.insertCategories(defaults)
         }
-    }
+    }*/
+
+    suspend fun seedDefaultCategoriesIfEmpty() =  withContext(Dispatchers.IO) {
+            val categories = categoryDao.getAllCategoriesList()
+            if (categories.isEmpty()) {
+                val defaults = CategoryType.entries.map {
+                        Category(
+                            name = it.displayName,
+                            colorHex = it.colorHex,
+                            iconName = it.iconName,
+                            isDefault = true
+                        )
+                    }
+
+                categoryDao.insertCategories(defaults)
+            }
+        }
 
     suspend fun resetAllData() = withContext(Dispatchers.IO) {
         shoppingListDao.deleteAllItems()
@@ -461,6 +504,168 @@ class PriceRepository(private val database: AppDatabase) {
             categories = categories
         )
         backupAdapter.toJson(backup)
+    }
+
+    // ZIP export: produces a ZIP with manifest.json and images/ folder
+    suspend fun exportDataToZipBytes(context: Context): ByteArray = withContext(Dispatchers.IO) {
+        val goods = goodDao.getAllGoodsList()
+        val shops = shopDao.getAllShopsList()
+        val records = priceRecordDao.getAllPriceRecordsList()
+        val history = priceHistoryDao.getAllPriceHistoryList()
+        val lists = shoppingListDao.getAllShoppingListsList()
+        val items = shoppingListDao.getAllItemsList()
+        val categories = categoryDao.getAllCategoriesList()
+
+        // Collect image files referenced by goods and price records
+        val imageEntries = mutableListOf<Pair<File, String>>()
+        var imageIndex = 0
+
+        fun addImageIfExists(path: String?): String? {
+            if (path == null) return null
+            try {
+                val f = File(path)
+                if (f.exists()) {
+                    val entryName = "images/img_${System.currentTimeMillis()}_${imageIndex}_${f.name}"
+                    imageIndex += 1
+                    imageEntries.add(Pair(f, entryName))
+                    return entryName
+                }
+            } catch (_: Exception) {}
+            return null
+        }
+
+        // Build copies that point to entry names instead of absolute paths
+        val goodsForManifest = goods.map { g ->
+            val newImgEntry = addImageIfExists(g.imageUri)
+            g.copy(imageUri = newImgEntry)
+        }
+        val recordsForManifest = records.map { r ->
+            val newPhotoEntry = addImageIfExists(r.photoUri)
+            r.copy(photoUri = newPhotoEntry)
+        }
+
+        val backup = BackupDataDto(
+            version = 3,
+            exportedAt = System.currentTimeMillis(),
+            goods = goodsForManifest,
+            shops = shops,
+            priceRecords = recordsForManifest,
+            priceHistory = history,
+            shoppingLists = lists,
+            shoppingListItems = items,
+            categories = categories
+        )
+
+        val manifestJson = backupAdapter.toJson(backup)
+
+        val baos = ByteArrayOutputStream()
+        ZipOutputStream(BufferedOutputStream(baos)).use { zos ->
+            // manifest
+            val manifestBytes = manifestJson.toByteArray(Charsets.UTF_8)
+            val mEntry = ZipEntry("manifest.json")
+            zos.putNextEntry(mEntry)
+            zos.write(manifestBytes)
+            zos.closeEntry()
+
+            // images
+            for ((file, entryName) in imageEntries) {
+                try {
+                    val entry = ZipEntry(entryName)
+                    zos.putNextEntry(entry)
+                    FileInputStream(file).use { fis ->
+                        val buf = ByteArray(4096)
+                        var read: Int
+                        while (fis.read(buf).also { read = it } > 0) {
+                            zos.write(buf, 0, read)
+                        }
+                    }
+                    zos.closeEntry()
+                } catch (_: Exception) {
+                }
+            }
+            zos.finish()
+        }
+        baos.toByteArray()
+    }
+
+    // ZIP import: reads manifest.json and images, writes images into app filesDir and updates manifest references
+    suspend fun importDataFromZip(inputStream: InputStream, overwrite: Boolean = false, context: Context): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val tempDir = File(context.filesDir, "imported_images")
+            if (!tempDir.exists()) tempDir.mkdirs()
+
+            val zis = ZipInputStream(BufferedInputStream(inputStream))
+            var entry = zis.nextEntry
+            var manifestText: String? = null
+            val savedImageMap = mutableMapOf<String, String>() // entryName -> saved absolute path
+
+            while (entry != null) {
+                val name = entry.name
+                if (entry.isDirectory) {
+                    entry = zis.nextEntry
+                    continue
+                }
+                if (name == "manifest.json") {
+                    val sb = StringBuilder()
+                    val reader = zis.bufferedReader(Charsets.UTF_8)
+                    reader.use { r -> sb.append(r.readText()) }
+                    manifestText = sb.toString()
+                } else if (name.startsWith("images/")) {
+                    val baseName = name.substringAfterLast('/')
+                    val outFile = File(tempDir, "${System.currentTimeMillis()}_${baseName}")
+                    FileOutputStream(outFile).use { fos ->
+                        val buf = ByteArray(4096)
+                        var read: Int
+                        while (zis.read(buf).also { read = it } > 0) {
+                            fos.write(buf, 0, read)
+                        }
+                    }
+                    savedImageMap[name] = outFile.absolutePath
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+            zis.close()
+
+            if (manifestText == null) return@withContext Result.failure(IllegalArgumentException("ZIP missing manifest.json"))
+
+            val backup = backupAdapter.fromJson(manifestText)
+                ?: return@withContext Result.failure(IllegalArgumentException("Invalid manifest JSON in ZIP"))
+
+            if (overwrite) {
+                resetAllData()
+            }
+
+            // Replace image entry names with actual saved paths
+            val goodsResolved = backup.goods.map { g ->
+                val img = g.imageUri
+                if (img != null && img.startsWith("images/")) {
+                    val saved = savedImageMap[img]
+                    g.copy(imageUri = saved)
+                } else g
+            }
+            val recordsResolved = backup.priceRecords.map { r ->
+                val p = r.photoUri
+                if (p != null && p.startsWith("images/")) {
+                    val saved = savedImageMap[p]
+                    r.copy(photoUri = saved)
+                } else r
+            }
+
+            // Insert data similar to JSON import
+            if (backup.categories.isNotEmpty()) categoryDao.insertCategories(backup.categories) else seedDefaultCategoriesIfEmpty()
+            if (backup.shops.isNotEmpty()) shopDao.insertShops(backup.shops)
+            if (goodsResolved.isNotEmpty()) goodDao.insertGoods(goodsResolved)
+            if (recordsResolved.isNotEmpty()) priceRecordDao.insertPriceRecords(recordsResolved)
+            if (backup.priceHistory.isNotEmpty()) priceHistoryDao.insertHistories(backup.priceHistory)
+            if (backup.shoppingLists.isNotEmpty()) shoppingListDao.insertShoppingLists(backup.shoppingLists)
+            if (backup.shoppingListItems.isNotEmpty()) shoppingListDao.insertItems(backup.shoppingListItems)
+
+            val totalImported = goodsResolved.size + backup.shops.size + recordsResolved.size + backup.shoppingLists.size + backup.shoppingListItems.size + backup.categories.size
+            Result.success(totalImported)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun importDataFromJson(jsonString: String, overwrite: Boolean = false): Result<Int> = withContext(Dispatchers.IO) {
@@ -658,52 +863,52 @@ class PriceRepository(private val database: AppDatabase) {
         val twoWeeksAgo = System.currentTimeMillis() - 86400000L * 20
 
         // 3. Price records & historical prices for Milk (goodId = 1)
-        saveSamplePrice(1, 1, 1.85, null, 1000.0, "ml", twoWeeksAgo, 1.95)
-        saveSamplePrice(1, 3, 1.55, 1.39, 1000.0, "ml", oneDayAgo, 1.55) // Lidl is cheapest!
-        saveSamplePrice(1, 4, 1.49, null, 1000.0, "ml", fiveDaysAgo, 1.49)
-        saveSamplePrice(1, 2, 1.99, 1.79, 1000.0, "ml", oneDayAgo, 2.09)
+        saveSamplePrice(1, 1, 18.5, null, 1000.0, "ml", twoWeeksAgo, 1.95)
+        saveSamplePrice(1, 3, 15.5, 13.9, 1000.0, "ml", oneDayAgo, 1.55) // Lidl is cheapest!
+        saveSamplePrice(1, 4, 14.9, null, 1000.0, "ml", fiveDaysAgo, 1.49)
+        saveSamplePrice(1, 2, 19.9, 17.9, 1000.0, "ml", oneDayAgo, 2.09)
 
         // 4. Eggs 12pk (goodId = 2)
-        saveSamplePrice(2, 4, 2.89, null, 12.0, "pcs", oneDayAgo, 3.10) // Aldi cheapest
-        saveSamplePrice(2, 1, 3.40, 2.99, 12.0, "pcs", oneDayAgo, 3.40)
-        saveSamplePrice(2, 3, 3.15, null, 12.0, "pcs", fiveDaysAgo, 2.99)
-        saveSamplePrice(2, 5, 3.65, null, 12.0, "pcs", oneDayAgo, 3.65)
+        saveSamplePrice(2, 4, 28.9, null, 12.0, "pcs", oneDayAgo, 3.10) // Aldi cheapest
+        saveSamplePrice(2, 1, 34.0, 29.9, 12.0, "pcs", oneDayAgo, 3.40)
+        saveSamplePrice(2, 3, 31.5, null, 12.0, "pcs", fiveDaysAgo, 2.99)
+        saveSamplePrice(2, 5, 36.5, null, 12.0, "pcs", oneDayAgo, 3.65)
 
         // 5. Spaghetti 500g (goodId = 3)
-        saveSamplePrice(3, 3, 0.95, 0.79, 500.0, "g", oneDayAgo, 0.95) // Lidl promo
-        saveSamplePrice(3, 4, 0.85, null, 500.0, "g", fiveDaysAgo, 0.85)
-        saveSamplePrice(3, 1, 1.25, 1.00, 500.0, "g", oneDayAgo, 1.25)
-        saveSamplePrice(3, 2, 1.15, null, 500.0, "g", twoWeeksAgo, 1.15)
+        saveSamplePrice(3, 3, 9.5, 07.9, 500.0, "g", oneDayAgo, 0.95) // Lidl promo
+        saveSamplePrice(3, 4, 8.5, null, 500.0, "g", fiveDaysAgo, 0.85)
+        saveSamplePrice(3, 1, 12.5, 10.0, 500.0, "g", oneDayAgo, 1.25)
+        saveSamplePrice(3, 2, 11.5, null, 500.0, "g", twoWeeksAgo, 1.15)
 
         // 6. Olive Oil 1L (goodId = 4)
-        saveSamplePrice(4, 5, 8.99, 7.49, 1000.0, "ml", oneDayAgo, 9.49)
-        saveSamplePrice(4, 3, 6.99, null, 1000.0, "ml", fiveDaysAgo, 6.49) // Lidl cheapest
-        saveSamplePrice(4, 1, 8.50, null, 1000.0, "ml", twoWeeksAgo, 8.50)
+        saveSamplePrice(4, 5, 89.9, 74.9, 1000.0, "ml", oneDayAgo, 9.49)
+        saveSamplePrice(4, 3, 69.9, null, 1000.0, "ml", fiveDaysAgo, 6.49) // Lidl cheapest
+        saveSamplePrice(4, 1, 85.0, null, 1000.0, "ml", twoWeeksAgo, 8.50)
 
         // 7. Coffee Beans 500g (goodId = 5)
-        saveSamplePrice(5, 1, 6.50, 4.99, 500.0, "g", oneDayAgo, 6.50) // Tesco Clubcard deal
-        saveSamplePrice(5, 2, 5.80, null, 500.0, "g", fiveDaysAgo, 5.80)
-        saveSamplePrice(5, 4, 5.49, null, 500.0, "g", twoWeeksAgo, 5.29)
+        saveSamplePrice(5, 1, 65.0, 49.9, 500.0, "g", oneDayAgo, 6.50) // Tesco Clubcard deal
+        saveSamplePrice(5, 2, 58.0, null, 500.0, "g", fiveDaysAgo, 5.80)
+        saveSamplePrice(5, 4, 54.9, null, 500.0, "g", twoWeeksAgo, 5.29)
 
         // 8. Bananas 1kg (goodId = 6)
-        saveSamplePrice(6, 4, 1.19, null, 1000.0, "g", oneDayAgo, 1.29) // Aldi
-        saveSamplePrice(6, 3, 1.25, 1.09, 1000.0, "g", oneDayAgo, 1.25) // Lidl
-        saveSamplePrice(6, 1, 1.45, null, 1000.0, "g", fiveDaysAgo, 1.45)
+        saveSamplePrice(6, 4, 11.9, null, 1000.0, "g", oneDayAgo, 1.29) // Aldi
+        saveSamplePrice(6, 3, 12.5, 10.9, 1000.0, "g", oneDayAgo, 1.25) // Lidl
+        saveSamplePrice(6, 1, 14.5, null, 1000.0, "g", fiveDaysAgo, 1.45)
 
         // 9. White Granulated Sugar 1kg (goodId = 9)
-        saveSamplePrice(9, 3, 1.19, null, 1000.0, "g", oneDayAgo, 1.25) // Lidl $1.19/1kg = $0.119/100g = $0.00119/g
-        saveSamplePrice(9, 4, 1.25, null, 1000.0, "g", fiveDaysAgo, 1.25)
-        saveSamplePrice(9, 1, 1.39, null, 1000.0, "g", twoWeeksAgo, 1.39)
+        saveSamplePrice(9, 3, 11.9, null, 1000.0, "g", oneDayAgo, 1.25) // Lidl $1.19/1kg = $0.119/100g = $0.00119/g
+        saveSamplePrice(9, 4, 12.5, null, 1000.0, "g", fiveDaysAgo, 1.25)
+        saveSamplePrice(9, 1, 13.9, null, 1000.0, "g", twoWeeksAgo, 1.39)
 
         // 10. Fresh Crisp Carrots 1kg (goodId = 10)
-        saveSamplePrice(10, 3, 0.89, 0.79, 1000.0, "g", oneDayAgo, 0.89) // Lidl $0.79/1kg = $0.079/100g = $0.00079/g
-        saveSamplePrice(10, 4, 0.89, null, 1000.0, "g", fiveDaysAgo, 0.89)
-        saveSamplePrice(10, 1, 1.05, null, 1000.0, "g", twoWeeksAgo, 1.05)
+        saveSamplePrice(10, 3, 8.9, 7.9, 1000.0, "g", oneDayAgo, 0.89) // Lidl $0.79/1kg = $0.079/100g = $0.00079/g
+        saveSamplePrice(10, 4, 8.9, null, 1000.0, "g", fiveDaysAgo, 0.89)
+        saveSamplePrice(10, 1, 10.5, null, 1000.0, "g", twoWeeksAgo, 1.05)
 
         // 11. Cane Sugar 500g (goodId = 11)
-        saveSamplePrice(11, 3, 0.99, null, 500.0, "g", oneDayAgo, 1.09) // Lidl $0.99 for 500g = $0.198/100g = $0.00198/g
-        saveSamplePrice(11, 2, 1.15, null, 500.0, "g", fiveDaysAgo, 1.15)
-        saveSamplePrice(11, 1, 1.20, null, 500.0, "g", twoWeeksAgo, 1.20)
+        saveSamplePrice(11, 3, 9.9, null, 500.0, "g", oneDayAgo, 1.09) // Lidl $0.99 for 500g = $0.198/100g = $0.00198/g
+        saveSamplePrice(11, 2, 11.5, null, 500.0, "g", fiveDaysAgo, 1.15)
+        saveSamplePrice(11, 1, 12.0, null, 500.0, "g", twoWeeksAgo, 1.20)
 
         // 9. Seed Sample Shopping Lists
         val weeklyListId = shoppingListDao.insertShoppingList(
@@ -755,6 +960,7 @@ class PriceRepository(private val database: AppDatabase) {
             packageUnit = unit,
             pricePerUnit = pastUnit,
             note = "Previous recorded price",
+            currencyCode = AppCurrency.CZK.code,
             recordedAt = currentTimestamp - 86400000L * 7
         )
         priceHistoryDao.insertHistory(pastHistory)
@@ -771,6 +977,7 @@ class PriceRepository(private val database: AppDatabase) {
             packageUnit = unit,
             pricePerUnit = unitPrice,
             note = if (currentDiscount != null) "Promotional price offer" else "Regular shelf price",
+            currencyCode = AppCurrency.CZK.code,
             recordedAt = currentTimestamp
         )
         priceHistoryDao.insertHistory(currentHistory)
@@ -785,6 +992,7 @@ class PriceRepository(private val database: AppDatabase) {
             pricePerUnit = unitPrice,
             unitMeasureLabel = unitLabel,
             isPromotion = currentDiscount != null,
+            currencyCode = AppCurrency.CZK.code,
             updatedAt = currentTimestamp
         )
         priceRecordDao.insertPriceRecord(record)

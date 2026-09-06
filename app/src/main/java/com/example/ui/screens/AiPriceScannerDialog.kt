@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,10 +64,12 @@ fun AiPriceScannerDialog(
     val currency = LocalAppCurrency.current
 
     var selectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var savedImagePath by remember { mutableStateOf<String?>(null) }
+    // Persist saved image path across rotation so Apply still has the file reference
+    var savedImagePath by rememberSaveable { mutableStateOf<String?>(null) }
     var localError by remember { mutableStateOf<String?>(null) }
-    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
-    var tempCameraFile by remember { mutableStateOf<File?>(null) }
+    // Persist camera temp uri string across rotation; Uri itself is not saveable reliably
+    var tempCameraUriString by rememberSaveable { mutableStateOf<String?>(null) }
+    var tempCameraFilePath by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Helper: Safely decode and downsample bitmap to avoid OutOfMemory
     fun processAndSaveBitmap(rawBitmap: Bitmap): Bitmap {
@@ -156,8 +159,13 @@ fun AiPriceScannerDialog(
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
-        if (success && tempCameraUri != null) {
-            handleImageUri(tempCameraUri!!)
+        if (success && tempCameraUriString != null) {
+            try {
+                handleImageUri(Uri.parse(tempCameraUriString))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                localError = AppStrings.photoCaptureError(lang)
+            }
         } else {
             // User cancelled or capture failed
         }
@@ -186,13 +194,13 @@ fun AiPriceScannerDialog(
         if (isGranted) {
             try {
                 val photoFile = File(context.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
-                tempCameraFile = photoFile
+                tempCameraFilePath = photoFile.absolutePath
                 val photoUri = FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.fileprovider",
                     photoFile
                 )
-                tempCameraUri = photoUri
+                tempCameraUriString = photoUri.toString()
                 takePictureLauncher.launch(photoUri)
             } catch (e: Exception) {
                 // Fallback to preview launcher
@@ -216,13 +224,13 @@ fun AiPriceScannerDialog(
         if (hasPermission) {
             try {
                 val photoFile = File(context.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
-                tempCameraFile = photoFile
+                tempCameraFilePath = photoFile.absolutePath
                 val photoUri = FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.fileprovider",
                     photoFile
                 )
-                tempCameraUri = photoUri
+                tempCameraUriString = photoUri.toString()
                 takePictureLauncher.launch(photoUri)
             } catch (e: Exception) {
                 try {

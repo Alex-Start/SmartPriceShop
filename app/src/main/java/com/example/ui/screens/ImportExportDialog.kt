@@ -38,6 +38,8 @@ fun ImportExportDialog(
     onDismiss: () -> Unit,
     onExportJson: suspend () -> String,
     onImportJson: (String, Boolean, (Boolean, String) -> Unit) -> Unit,
+    onExportZip: (suspend () -> ByteArray)? = null,
+    onImportZipUri: ((android.net.Uri, Boolean, (Boolean, String) -> Unit) -> Unit)? = null,
     onClearHistory: () -> Unit,
     onResetAll: () -> Unit,
     onReloadSampleData: () -> Unit
@@ -231,6 +233,65 @@ fun ImportExportDialog(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Export ZIP actions (if provided)
+                    if (onExportZip != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val createZipLauncher = rememberLauncherForActivityResult(
+                                contract = ActivityResultContracts.CreateDocument("application/zip")
+                            ) { uri: Uri? ->
+                                if (uri != null) {
+                                    coroutineScope.launch {
+                                        try {
+                                            val bytes = onExportZip()
+                                            context.contentResolver.openOutputStream(uri)?.use { out ->
+                                                out.write(bytes)
+                                            }
+                                            statusMessage = "ZIP backup exported successfully"
+                                            isErrorStatus = false
+                                        } catch (e: Exception) {
+                                            statusMessage = "Failed to export ZIP: ${e.localizedMessage}"
+                                            isErrorStatus = true
+                                        }
+                                    }
+                                }
+                            }
+
+                            Button(
+                                onClick = { createZipLauncher.launch("smartprice_backup_${System.currentTimeMillis()}.zip") },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("export_zip_button"),
+                                colors = ButtonDefaults.buttonColors(containerColor = SapphireBrand),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(imageVector = Icons.Outlined.FolderZip, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Export ZIP (manifest+images)", style = MaterialTheme.typography.labelMedium)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    // copy as base64 maybe - not implemented
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("export_zip_copy_button"),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(imageVector = Icons.Outlined.Link, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Export ZIP (Save...)", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider(color = HighDensityBorder)
                     Spacer(modifier = Modifier.height(14.dp))
@@ -258,7 +319,33 @@ fun ImportExportDialog(
                     ) {
                         Icon(imageVector = Icons.Outlined.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Pick Backup File (.json)", style = MaterialTheme.typography.labelMedium)
+                        Text("Pick Backup File (.json or .zip)", style = MaterialTheme.typography.labelMedium)
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // ZIP import launcher
+                    val zipPickerLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.GetContent()
+                    ) { uri: Uri? ->
+                        if (uri != null && onImportZipUri != null) {
+                            coroutineScope.launch {
+                                onImportZipUri(uri, overwriteMode) { success, msg ->
+                                    statusMessage = msg
+                                    isErrorStatus = !success
+                                }
+                            }
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = { zipPickerLauncher.launch("application/zip") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Outlined.FolderZip, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Import Backup (.zip)", style = MaterialTheme.typography.labelMedium)
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))

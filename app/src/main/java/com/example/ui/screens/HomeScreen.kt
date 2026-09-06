@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -92,57 +93,12 @@ fun HomeScreen(
     val geminiApiKey by viewModel.geminiApiKey.collectAsStateWithLifecycle()
     val userMsg by viewModel.userMessage.collectAsStateWithLifecycle()
 
-    // Dialog & Sheet States
-    var showAddPriceDialog by remember { mutableStateOf(false) }
+    // Dialog & Sheet States are persisted in ViewModel to survive rotations
     var showGeminiKeyDialog by remember { mutableStateOf(false) }
     var geminiKeyInput by remember(geminiApiKey) { mutableStateOf(geminiApiKey) }
-    var selectedGoodForAdd by remember { mutableStateOf<Good?>(null) }
-    var selectedShopForAdd by remember { mutableStateOf<Shop?>(null) }
-    var initialBarcodeForAdd by remember { mutableStateOf<String?>(null) }
-    var initialRegularPriceForAdd by remember { mutableStateOf<Double?>(null) }
-    var initialDiscountPriceForAdd by remember { mutableStateOf<Double?>(null) }
-    var initialPackageAmountForAdd by remember { mutableStateOf<Double?>(null) }
-    var initialPackageUnitForAdd by remember { mutableStateOf<String?>(null) }
-    var initialIsPromotionForAdd by remember { mutableStateOf(false) }
-    var initialNoteForAdd by remember { mutableStateOf<String?>(null) }
-    var initialPhotoUriForAdd by remember { mutableStateOf<String?>(null) }
-    var initialProductImageUriForAdd by remember { mutableStateOf<String?>(null) }
-    var initialPricePhotoUriForAdd by remember { mutableStateOf<String?>(null) }
-    var isEditingPriceForAdd by remember { mutableStateOf(false) }
 
-    fun openAddPrice(good: Good? = null, shop: Shop? = null, barcode: String? = null) {
-        selectedGoodForAdd = good
-        selectedShopForAdd = shop
-        initialBarcodeForAdd = barcode ?: good?.barcode
-        initialRegularPriceForAdd = null
-        initialDiscountPriceForAdd = null
-        initialPackageAmountForAdd = good?.weight
-        initialPackageUnitForAdd = good?.weightUnit ?: "g"
-        initialIsPromotionForAdd = false
-        initialNoteForAdd = null
-        initialPhotoUriForAdd = null
-        initialProductImageUriForAdd = good?.imageUri
-        initialPricePhotoUriForAdd = null
-        isEditingPriceForAdd = false
-        showAddPriceDialog = true
-    }
-
-    fun openEditPrice(good: Good, shopPrice: ShopPriceDetail) {
-        selectedGoodForAdd = good
-        selectedShopForAdd = shopPrice.shop
-        initialBarcodeForAdd = good.barcode
-        initialRegularPriceForAdd = shopPrice.priceRecord.regularPrice
-        initialDiscountPriceForAdd = shopPrice.priceRecord.discountPrice
-        initialPackageAmountForAdd = shopPrice.priceRecord.packageAmount
-        initialPackageUnitForAdd = shopPrice.priceRecord.packageUnit
-        initialIsPromotionForAdd = shopPrice.priceRecord.isPromotion
-        initialNoteForAdd = good.notes
-        initialPhotoUriForAdd = shopPrice.priceRecord.photoUri
-        initialProductImageUriForAdd = good.imageUri
-        initialPricePhotoUriForAdd = shopPrice.priceRecord.photoUri
-        isEditingPriceForAdd = true
-        showAddPriceDialog = true
-    }
+    val showAddPriceDialog by viewModel.showAddPriceDialog.collectAsStateWithLifecycle()
+    val addPriceDraft by viewModel.addPriceDraft.collectAsStateWithLifecycle() // DraftPriceForm
 
     var showAiScannerDialog by remember { mutableStateOf(false) }
     var showImportExportDialog by remember { mutableStateOf(false) }
@@ -152,15 +108,16 @@ fun HomeScreen(
     var showLanguageMenu by remember { mutableStateOf(false) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
     var showTopToolsMenu by remember { mutableStateOf(false) }
+    var showCurrencyRatesDialog by remember { mutableStateOf(false) }
     var goodForAddToList by remember { mutableStateOf<Good?>(null) }
 
     // Dynamic Categories including 'All'
     val displayCategories = remember(allCategories) {
-        val list = mutableListOf("All")
+        val list = mutableListOf(AppStrings.ALL)
         if (allCategories.isNotEmpty()) {
             list.addAll(allCategories.map { it.name })
         } else {
-            list.addAll(listOf("Dairy", "Fruits & Veg", "Meat & Fish", "Bakery", "Beverages", "Pantry", "Snacks", "Household", "Other"))
+            list.addAll(AppStrings.defaultCategories)
         }
         list
     }
@@ -575,6 +532,45 @@ fun HomeScreen(
                                             },
                                             modifier = Modifier.testTag("menu_item_backup")
                                         )
+
+                                        // 5. Currency Rates (manual)
+                                        DropdownMenuItem(
+                                            leadingIcon = {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Sell,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            },
+                                            text = {
+                                                Column {
+                                                    Text(
+                                                        text = "Currency Rates",
+                                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "Edit manual currency conversion rates",
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                showTopToolsMenu = false
+                                                showCurrencyRatesDialog = true
+                                            },
+                                            modifier = Modifier.testTag("menu_item_currency_rates")
+                                        )
                                     }
                                 }
                             }
@@ -759,7 +755,7 @@ fun HomeScreen(
 
                         // Add Price / Good Extended FAB
                         ExtendedFloatingActionButton(
-                            onClick = { openAddPrice() },
+                                                    onClick = { viewModel.openAddPrice() },
                             shape = RoundedCornerShape(16.dp),
                             containerColor = SapphireBrand,
                             contentColor = Color.White,
@@ -1014,7 +1010,7 @@ fun HomeScreen(
                                         )
                                         Spacer(modifier = Modifier.height(12.dp))
                                         Text(
-                                            text = if (searchQuery.isNotBlank() || selectedCategory != "All" || selectedShopId != null) {
+                                            text = if (searchQuery.isNotBlank() || selectedCategory != AppStrings.ALL || selectedShopId != null) {
                                                 AppStrings.noProductsFound(currentLang)
                                             } else {
                                                 AppStrings.noGoodsRecorded(currentLang)
@@ -1032,7 +1028,7 @@ fun HomeScreen(
                                         )
                                         Spacer(modifier = Modifier.height(16.dp))
                                         Button(
-                                            onClick = { openAddPrice() },
+                                                                                    onClick = { viewModel.openAddPrice() },
                                             shape = RoundedCornerShape(12.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = SapphireBrand)
                                         ) {
@@ -1049,11 +1045,13 @@ fun HomeScreen(
                                     item = item,
                                     onClick = { viewModel.selectGoodForDetail(item.good.id) },
                                     onAddPriceClick = {
-                                        openAddPrice(item.good, null, item.good.barcode)
+                                                                            viewModel.openAddPrice(item.good, null, item.good.barcode)
                                     },
                                     onAddToListClick = {
                                         goodForAddToList = item.good
-                                    }
+                                    },
+                                    convertAmountForDisplay = { amt, fromCode -> viewModel.convertAmount(amt, fromCode) },
+                                    formatAmountForDisplay = { amt, fromCode -> viewModel.formatAmountForDisplay(amt, fromCode) }
                                 )
                             }
                         }
@@ -1090,7 +1088,7 @@ fun HomeScreen(
                             currentTab = 0
                         },
                         onAddNewProductWithBarcode = { barcode ->
-                            openAddPrice(null, null, barcode)
+                                                    viewModel.openAddPrice(null, null, barcode)
                         },
                         onOpenAiScanner = {
                             showAiScannerDialog = true
@@ -1175,10 +1173,10 @@ fun HomeScreen(
             historyList = selectedGoodHistory,
             onDismiss = { viewModel.selectGoodForDetail(null) },
             onAddOrUpdatePriceClick = {
-                openAddPrice(selectedGoodItem!!.good, null, selectedGoodItem!!.good.barcode)
+                            viewModel.openAddPrice(selectedGoodItem!!.good, null, selectedGoodItem!!.good.barcode)
             },
             onEditPriceRecord = { shopPrice ->
-                openEditPrice(selectedGoodItem!!.good, shopPrice)
+                viewModel.openEditPrice(selectedGoodItem!!.good, shopPrice)
             },
             onAddToListClick = {
                 goodForAddToList = selectedGoodItem!!.good
@@ -1198,41 +1196,33 @@ fun HomeScreen(
     // 2. Add / Edit Price Dialog
     if (showAddPriceDialog) {
         AddEditPriceDialog(
-            initialGood = selectedGoodForAdd,
-            initialShop = selectedShopForAdd,
-            initialBarcode = initialBarcodeForAdd,
-            initialRegularPrice = initialRegularPriceForAdd,
-            initialDiscountPrice = initialDiscountPriceForAdd,
-            initialPackageAmount = initialPackageAmountForAdd,
-            initialPackageUnit = initialPackageUnitForAdd,
-            initialIsPromotion = initialIsPromotionForAdd,
-            initialNote = initialNoteForAdd,
-            initialPhotoUri = initialPhotoUriForAdd,
-            initialProductImageUri = initialProductImageUriForAdd,
-            initialPricePhotoUri = initialPricePhotoUriForAdd,
-            isEditingPrice = isEditingPriceForAdd,
-            allShops = allShops,
-            allGoods = allGoods,
-            allCategories = allCategories,
-            onDismiss = {
-                showAddPriceDialog = false
-                selectedGoodForAdd = null
-                selectedShopForAdd = null
-                initialBarcodeForAdd = null
-                initialRegularPriceForAdd = null
-                initialDiscountPriceForAdd = null
-                initialPackageAmountForAdd = null
-                initialPackageUnitForAdd = null
-                initialIsPromotionForAdd = false
-                initialNoteForAdd = null
-                initialPhotoUriForAdd = null
-                initialProductImageUriForAdd = null
-                initialPricePhotoUriForAdd = null
-                isEditingPriceForAdd = false
-            },
+            initialGood = addPriceDraft.good,
+            initialShop = addPriceDraft.shop,
+            initialBarcode = addPriceDraft.barcode,
+            initialRegularPrice = addPriceDraft.regularPrice,
+            initialDiscountPrice = addPriceDraft.discountPrice,
+            initialPackageAmount = addPriceDraft.packageAmount,
+            initialPackageUnit = addPriceDraft.packageUnit,
+            initialIsPromotion = addPriceDraft.isPromotion,
+            initialNote = addPriceDraft.note,
+            initialPhotoUri = addPriceDraft.photoUri,
+            initialProductImageUri = addPriceDraft.productImageUri,
+            initialPricePhotoUri = addPriceDraft.pricePhotoUri,
+            onProductImageSaved = { uri -> viewModel.updateDraftProductImageUri(uri) },
+            onPricePhotoSaved = { uri -> viewModel.updateDraftPricePhotoUri(uri) },
+        pendingPhotoTargetNameFromVm = viewModel.pendingPhotoTargetName.collectAsStateWithLifecycle().value,
+        onSetPendingPhotoTargetName = { name -> viewModel.setPendingPhotoTargetName(name) },
+        isEditingPrice = addPriceDraft.isEditing,
+        allShops = allShops,
+        allGoods = allGoods,
+        allCategories = allCategories,
+        onDismiss = {
+            viewModel.closeAddPriceDialog()
+        },
             onOpenCategoryManager = {
                 showManageCategoriesDialog = true
             },
+
             onSave = { goodId, name, category, unitType, barcode, weight, weightUnit, imgUri, sName, sAddr, regPrice, discPrice, amount, unit, photoUri, isPromo, note ->
                 viewModel.saveGoodAndPrice(
                     goodId = goodId,
@@ -1255,11 +1245,11 @@ fun HomeScreen(
                 )
             },
             onOpenAiScanner = {
-                showAddPriceDialog = false
+                viewModel.closeAddPriceDialog()
                 showAiScannerDialog = true
             },
             onOpenBarcodeScanner = {
-                showAddPriceDialog = false
+                viewModel.closeAddPriceDialog()
                 currentTab = 2
             }
         )
@@ -1296,21 +1286,19 @@ fun HomeScreen(
                     allGoods.firstOrNull { it.name.equals(result.productName, ignoreCase = true) }
                 } else null
 
-                selectedGoodForAdd = matchingGood ?: Good(
+                val chosenGood = matchingGood ?: Good(
                     name = result.productName ?: "Scanned Product",
-                    category = result.category ?: "Dairy",
+                    category = result.category ?: AppStrings.defaultCategories.first(),
                     weight = result.packageAmount ?: 0.0,
                     weightUnit = result.packageUnit ?: "g",
                     barcode = result.barcode
                 )
-                if (result.shopName != null) {
-                    selectedShopForAdd = allShops.firstOrNull { it.name.equals(result.shopName, ignoreCase = true) }
-                        ?: Shop(name = result.shopName, address = result.shopAddress ?: "")
-                } else {
-                    selectedShopForAdd = null
-                }
 
-                // AI Scanner Requirement: Get current price and add into Regular price
+                val chosenShop = if (result.shopName != null) {
+                    allShops.firstOrNull { it.name.equals(result.shopName, ignoreCase = true) }
+                        ?: Shop(name = result.shopName, address = result.shopAddress ?: "")
+                } else null
+
                 val effectiveRegularPrice = when {
                     result.regularPrice != null && result.regularPrice > 0.0 -> result.regularPrice
                     result.discountPrice != null && result.discountPrice > 0.0 -> result.discountPrice
@@ -1320,19 +1308,23 @@ fun HomeScreen(
                     result.discountPrice
                 } else null
 
-                initialBarcodeForAdd = result.barcode ?: matchingGood?.barcode
-                initialRegularPriceForAdd = effectiveRegularPrice
-                initialDiscountPriceForAdd = effectiveDiscountPrice
-                initialPackageAmountForAdd = result.packageAmount ?: matchingGood?.weight
-                initialPackageUnitForAdd = result.packageUnit ?: matchingGood?.weightUnit ?: "g"
-                initialIsPromotionForAdd = effectiveDiscountPrice != null
-                initialNoteForAdd = result.notes
-                initialPhotoUriForAdd = imagePath
-                initialProductImageUriForAdd = matchingGood?.imageUri
-                initialPricePhotoUriForAdd = imagePath
-                isEditingPriceForAdd = false
+                viewModel.openAddPrice(
+                    good = chosenGood,
+                    shop = chosenShop,
+                    barcode = result.barcode ?: matchingGood?.barcode,
+                    regularPrice = effectiveRegularPrice,
+                    discountPrice = effectiveDiscountPrice,
+                    packageAmount = result.packageAmount ?: matchingGood?.weight,
+                    packageUnit = result.packageUnit ?: matchingGood?.weightUnit ?: "g",
+                    isPromotion = effectiveDiscountPrice != null,
+                    note = result.notes,
+                    photoUri = imagePath,
+                    productImageUri = matchingGood?.imageUri,
+                    pricePhotoUri = imagePath,
+                    isEditing = false
+                )
 
-                showAddPriceDialog = true
+                showAiScannerDialog = false
             },
             onDismiss = {
                 viewModel.clearAiScanResult()
@@ -1349,10 +1341,16 @@ fun HomeScreen(
             onImportJson = { json, overwrite, callback ->
                 viewModel.importDataFromJson(json, overwrite, callback)
             },
+            onExportZip = { viewModel.getExportZipBytes() },
+            onImportZipUri = { uri, overwrite, callback -> viewModel.importZipFromUri(uri, overwrite, callback) },
             onClearHistory = { viewModel.clearAllPriceHistory() },
             onResetAll = { viewModel.resetAllData() },
             onReloadSampleData = { viewModel.reloadSampleData() }
         )
+    }
+
+    if (showCurrencyRatesDialog) {
+        SettingsCurrencyRatesDialog(viewModel = viewModel, onDismiss = { showCurrencyRatesDialog = false })
     }
 
     // 6. Manage Supermarkets Dialog

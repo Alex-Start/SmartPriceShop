@@ -29,11 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.data.model.Good
 import com.example.data.model.GoodWithPrices
 import com.example.data.model.Shop
 import com.example.ui.theme.*
-import com.example.util.AppCurrency
+import com.example.util.AppStrings
 import com.example.util.LocalAppCurrency
 import com.example.util.UnitPriceCalculator
 
@@ -61,11 +60,11 @@ fun AddShoppingListItemDialog(
 
     // Database Search Tab State
     var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("All") }
+    var selectedCategory by remember { mutableStateOf(AppStrings.ALL) }
 
     // Custom Item Tab State
     var customName by remember { mutableStateOf("") }
-    var customCategory by remember { mutableStateOf("Dairy") }
+    var customCategory by remember { mutableStateOf(AppStrings.defaultCategories.first()) }
     var customQuantityText by remember { mutableStateOf("1") }
     var customUnit by remember { mutableStateOf("pcs") }
     var customWeightText by remember { mutableStateOf("500") }
@@ -73,7 +72,7 @@ fun AddShoppingListItemDialog(
     var customEstimatedPriceText by remember { mutableStateOf("") }
     var customNotes by remember { mutableStateOf("") }
 
-    val categories = listOf("All", "Dairy", "Fruits & Veg", "Meat & Fish", "Bakery", "Beverages", "Pantry", "Snacks", "Household", "Other")
+    val categories = listOf(AppStrings.ALL) + AppStrings.defaultCategories
     val units = listOf("pcs", "pack", "item", "g", "kg", "ml", "L")
     val weightUnits = listOf("g", "kg", "ml", "L", "oz", "lb")
 
@@ -88,7 +87,7 @@ fun AddShoppingListItemDialog(
                 (it.good.barcode?.contains(q) == true)
             }
         }
-        if (selectedCategory != "All") {
+        if (selectedCategory != AppStrings.ALL) {
             list = list.filter { it.good.category.equals(selectedCategory, ignoreCase = true) }
         }
         list
@@ -353,7 +352,7 @@ fun AddShoppingListItemDialog(
                                                     }
                                                     if (cheapest != null) {
                                                         Text(
-                                                            text = " • ${cheapest.shop.name}: ${UnitPriceCalculator.formatCurrency(cheapest.priceRecord.effectivePrice, currentCurrency)}",
+                                                            text = " • ${cheapest.shop.name}: ${UnitPriceCalculator.formatCurrencyWithConversion(cheapest.priceRecord.effectivePrice, cheapest.priceRecord.currencyCode, currentCurrency)}",
                                                             style = MaterialTheme.typography.labelSmall.copy(
                                                                 fontSize = 10.sp,
                                                                 color = DealGreen,
@@ -417,7 +416,7 @@ fun AddShoppingListItemDialog(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(categories.filter { it != "All" }) { cat ->
+                            items(categories.filter { it != AppStrings.ALL }) { cat ->
                                 val isSelected = customCategory == cat
                                 Box(
                                     modifier = Modifier

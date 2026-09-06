@@ -5,6 +5,7 @@ import android.util.Base64
 import android.util.Log
 import com.example.BuildConfig
 import com.example.data.model.AiScannedProductDto
+import com.example.util.AppStrings
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +40,7 @@ class GeminiPriceScannerService {
             Log.w("GeminiScanner", "GEMINI_API_KEY is not configured.")
             val sampleParsed = AiScannedProductDto(
                 productName = "Fresh Organic Butter",
-                category = "Dairy",
+                category = AppStrings.defaultCategories.first(),
                 shopName = "Supermarket",
                 regularPrice = 3.49,
                 discountPrice = 2.89,
