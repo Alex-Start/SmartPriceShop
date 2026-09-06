@@ -14,7 +14,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.util.AppCurrency
 import com.example.util.AppLanguage
+import com.example.util.AppStrings
 import com.example.util.UnitPriceCalculator
+import com.example.util.CurrencyRates
 import java.io.File
 import java.io.FileOutputStream
 
@@ -23,6 +25,9 @@ enum class SortOption {
     PRICE_PER_GRAM,
     BIGGEST_DISCOUNT,
     NAME_AZ,
+    NAME_ZA,
+    NOTE_AZ,
+    NOTE_ZA,
     RECENTLY_UPDATED,
     MOST_SHOPS;
 
@@ -46,6 +51,21 @@ enum class SortOption {
             AppLanguage.ENGLISH -> "Name (A-Z)"
             AppLanguage.UKRAINIAN -> "Назва (А-Я)"
             AppLanguage.CZECH -> "Název (A-Z)"
+        }
+        NAME_ZA -> when (lang) {
+            AppLanguage.ENGLISH -> "Name (Z-A)"
+            AppLanguage.UKRAINIAN -> "Назва (Я-А)"
+            AppLanguage.CZECH -> "Název (Z-A)"
+        }
+        NOTE_AZ -> when (lang) {
+            AppLanguage.ENGLISH -> "Note (A-Z)"
+            AppLanguage.UKRAINIAN -> "Примітка (А-Я)"
+            AppLanguage.CZECH -> "Poznámka (A-Z)"
+        }
+        NOTE_ZA -> when (lang) {
+            AppLanguage.ENGLISH -> "Note (Z-A)"
+            AppLanguage.UKRAINIAN -> "Примітка (Я-А)"
+            AppLanguage.CZECH -> "Poznámka (Z-A)"
         }
         RECENTLY_UPDATED -> when (lang) {
             AppLanguage.ENGLISH -> "Recently Updated"
@@ -75,10 +95,107 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
     private val aiScannerService = GeminiPriceScannerService()
     private val prefs = application.getSharedPreferences("price_tracker_prefs", android.content.Context.MODE_PRIVATE)
 
+    // Draft form stored to survive configuration changes
+    data class DraftPriceForm(
+        val good: Good? = null,
+        val shop: Shop? = null,
+        val barcode: String? = null,
+        val regularPrice: Double? = null,
+        val discountPrice: Double? = null,
+        val packageAmount: Double? = null,
+        val packageUnit: String? = null,
+        val isPromotion: Boolean = false,
+        val note: String? = null,
+        val photoUri: String? = null,
+        val productImageUri: String? = null,
+        val pricePhotoUri: String? = null,
+        val isEditing: Boolean = false
+    )
+
+    private val _addPriceDraft = MutableStateFlow(DraftPriceForm())
+    val addPriceDraft: StateFlow<DraftPriceForm> = _addPriceDraft
+
+    private val _showAddPriceDialog = MutableStateFlow(false)
+    val showAddPriceDialog: StateFlow<Boolean> = _showAddPriceDialog
+
+    fun openAddPrice(
+        good: Good? = null,
+        shop: Shop? = null,
+        barcode: String? = null,
+        regularPrice: Double? = null,
+        discountPrice: Double? = null,
+        packageAmount: Double? = null,
+        packageUnit: String? = null,
+        isPromotion: Boolean = false,
+        note: String? = null,
+        photoUri: String? = null,
+        productImageUri: String? = null,
+        pricePhotoUri: String? = null,
+        isEditing: Boolean = false
+    ) {
+        _addPriceDraft.value = DraftPriceForm(
+            good = good,
+            shop = shop,
+            barcode = barcode ?: good?.barcode,
+            regularPrice = regularPrice,
+            discountPrice = discountPrice,
+            packageAmount = packageAmount ?: good?.weight,
+            packageUnit = packageUnit ?: good?.weightUnit ?: "g",
+            isPromotion = isPromotion,
+            note = note ?: good?.notes,
+            photoUri = photoUri,
+            productImageUri = productImageUri ?: good?.imageUri,
+            pricePhotoUri = pricePhotoUri,
+            isEditing = isEditing
+        )
+        _showAddPriceDialog.value = true
+    }
+
+    fun openEditPrice(good: Good, shopPrice: ShopPriceDetail) {
+        _addPriceDraft.value = DraftPriceForm(
+            good = good,
+            shop = shopPrice.shop,
+            barcode = good.barcode,
+            regularPrice = shopPrice.priceRecord.regularPrice,
+            discountPrice = shopPrice.priceRecord.discountPrice,
+            packageAmount = shopPrice.priceRecord.packageAmount,
+            packageUnit = shopPrice.priceRecord.packageUnit,
+            isPromotion = shopPrice.priceRecord.isPromotion,
+            note = good.notes,
+            photoUri = shopPrice.priceRecord.photoUri,
+            productImageUri = good.imageUri,
+            pricePhotoUri = shopPrice.priceRecord.photoUri,
+            isEditing = true
+        )
+        _showAddPriceDialog.value = true
+    }
+
+    fun closeAddPriceDialog() {
+        _showAddPriceDialog.value = false
+        _addPriceDraft.value = DraftPriceForm()
+    }
+
+    // Incremental draft updates so UI actions (camera/gallery) persist across rotation
+    fun updateDraftProductImageUri(uri: String?) {
+        _addPriceDraft.value = _addPriceDraft.value.copy(productImageUri = uri)
+    }
+
+    fun updateDraftPricePhotoUri(uri: String?) {
+        _addPriceDraft.value = _addPriceDraft.value.copy(pricePhotoUri = uri)
+    }
+
     // Language state
     val currentLanguage = MutableStateFlow(
         AppLanguage.fromCode(prefs.getString("selected_language", AppLanguage.ENGLISH.code) ?: "en")
     )
+
+    // Pending photo target name preserved across camera launches and rotations (string enum name)
+    private val _pendingPhotoTargetName = MutableStateFlow<String?>(null)
+    val pendingPhotoTargetName: StateFlow<String?> = _pendingPhotoTargetName
+
+    fun setPendingPhotoTargetName(name: String?) {
+        _pendingPhotoTargetName.value = name
+    }
 
     fun setLanguage(lang: AppLanguage) {
         currentLanguage.value = lang
@@ -87,7 +204,7 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
 
     // Currency state
     val currentCurrency = MutableStateFlow(
-        AppCurrency.fromCode(prefs.getString("selected_currency", AppCurrency.USD.code) ?: "USD")
+        AppCurrency.fromCode(prefs.getString("selected_currency", AppCurrency.CZK.code) ?: AppCurrency.CZK.code)
     )
 
     fun setCurrency(currency: AppCurrency) {
@@ -98,14 +215,38 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
     init {
         val db = AppDatabase.getDatabase(application)
         repository = PriceRepository(db)
+        // load saved currency rates (or defaults)
+        CurrencyRates.loadFromPrefs(application)
         viewModelScope.launch {
             repository.seedSampleDataIfEmpty()
         }
     }
 
+    // Currency rates management (per-device manual rates)
+    fun setCurrencyRate(currencyCode: String, ratePer1USD: Double) {
+        CurrencyRates.setRate(currencyCode, ratePer1USD)
+        CurrencyRates.saveToPrefs(getApplication())
+    }
+
+    fun getCurrencyRates(): Map<String, Double> = CurrencyRates.getRates()
+
+    /**
+     * Convert an amount stored in sourceCurrency (if null, default CZK) to app selected currency.
+     */
+    fun convertAmount(amount: Double, sourceCurrency: String?): Double {
+        val targetCode = currentCurrency.value.code
+        return CurrencyRates.convert(amount, sourceCurrency ?: AppCurrency.CZK.code, targetCode)
+    }
+
+    fun formatAmountForDisplay(amount: Double, sourceCurrency: String?): String {
+        val converted = convertAmount(amount, sourceCurrency)
+        val targetCurr = AppCurrency.fromCode(currentCurrency.value.code)
+        return UnitPriceCalculator.formatCurrency(converted, targetCurr)
+    }
+
     // Filter and Search states
     val searchQuery = MutableStateFlow("")
-    val selectedCategory = MutableStateFlow("All")
+    val selectedCategory = MutableStateFlow(AppStrings.ALL)
     val selectedShopId = MutableStateFlow<Long?>(null)
     val sortOption = MutableStateFlow(SortOption.PRICE_PER_ITEM)
     val onlyPromotions = MutableStateFlow(false)
@@ -157,7 +298,7 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
         }
 
         // Category filter
-        if (params.category != "All") {
+        if (params.category != AppStrings.ALL) {
             list = list.filter { it.good.category.equals(params.category, ignoreCase = true) }
         }
 
@@ -201,6 +342,13 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
                 item.shopPrices.maxOfOrNull { it.priceRecord.discountPercentage } ?: 0
             }
             SortOption.NAME_AZ -> list.sortedBy { it.good.name.lowercase() }
+            SortOption.NAME_ZA -> list.sortedByDescending { it.good.name.lowercase() }
+            SortOption.NOTE_AZ -> list.sortedBy {
+                it.good.notes.ifBlank { "\uFFFF" }.lowercase()
+            }
+            SortOption.NOTE_ZA -> list.sortedByDescending {
+                it.good.notes.ifBlank { "" }.lowercase()
+            }
             SortOption.RECENTLY_UPDATED -> list.sortedByDescending { item ->
                 item.shopPrices.maxOfOrNull { it.priceRecord.updatedAt } ?: item.good.createdAt
             }
@@ -247,6 +395,18 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
     val isAiScanning = MutableStateFlow(false)
     val aiScannedResult = MutableStateFlow<AiScannedProductDto?>(null)
     val aiScanErrorMessage = MutableStateFlow<String?>(null)
+    val geminiApiKey = MutableStateFlow(prefs.getString("gemini_api_key", "") ?: "")
+
+    fun setGeminiApiKey(key: String) {
+        val trimmed = key.trim()
+        prefs.edit().putString("gemini_api_key", trimmed).apply()
+        geminiApiKey.value = trimmed
+    }
+
+    fun clearGeminiApiKey() {
+        prefs.edit().remove("gemini_api_key").apply()
+        geminiApiKey.value = ""
+    }
 
     fun clearUserMessage() {
         userMessage.value = null
@@ -330,7 +490,8 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
                     packageUnit = packageUnit,
                     photoUri = photoUri,
                     isPromotion = isPromotion,
-                    note = note
+                    note = note,
+                    currencyCode = currentCurrency.value.code
                 )
 
                 userMessage.value = UiSnackbarMessage("Price for '$goodName' at ${shop.name} saved successfully!")
@@ -609,7 +770,7 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
             aiScanErrorMessage.value = null
             aiScannedResult.value = null
 
-            val result = aiScannerService.scanPriceTagImage(bitmap)
+            val result = aiScannerService.scanPriceTagImage(bitmap, geminiApiKey.value)
             isAiScanning.value = false
 
             result.onSuccess { dto ->
@@ -632,6 +793,10 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
         return repository.exportDataToJson()
     }
 
+    suspend fun getExportZipBytes(): ByteArray {
+        return repository.exportDataToZipBytes(getApplication())
+    }
+
     fun importDataFromJson(jsonString: String, overwrite: Boolean = false, onComplete: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             val result = repository.importDataFromJson(jsonString, overwrite)
@@ -641,6 +806,29 @@ class PriceTrackerViewModel(application: Application) : AndroidViewModel(applica
             }.onFailure { err ->
                 userMessage.value = UiSnackbarMessage("Import failed: ${err.localizedMessage}", isError = true)
                 onComplete(false, err.localizedMessage ?: "Invalid JSON format")
+            }
+        }
+    }
+
+    fun importZipFromUri(uri: android.net.Uri, overwrite: Boolean = false, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val context = getApplication<Application>()
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val result = repository.importDataFromZip(stream, overwrite, context)
+                    result.onSuccess { count ->
+                        userMessage.value = UiSnackbarMessage("Imported $count items from ZIP")
+                        onComplete(true, "Imported $count items from ZIP")
+                    }.onFailure { e ->
+                        userMessage.value = UiSnackbarMessage("ZIP import failed: ${e.localizedMessage}", isError = true)
+                        onComplete(false, e.localizedMessage ?: "ZIP import failed")
+                    }
+                } ?: run {
+                    onComplete(false, "Failed to open selected file")
+                }
+            } catch (e: Exception) {
+                userMessage.value = UiSnackbarMessage("ZIP import error: ${e.localizedMessage}", isError = true)
+                onComplete(false, e.localizedMessage ?: "ZIP import failed")
             }
         }
     }

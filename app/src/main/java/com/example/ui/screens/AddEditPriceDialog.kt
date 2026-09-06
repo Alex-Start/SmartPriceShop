@@ -1,10 +1,13 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -23,6 +26,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +52,11 @@ import com.example.util.LocalAppLanguage
 import com.example.util.UnitPriceCalculator
 import java.io.File
 
+private enum class PhotoTarget {
+    PRODUCT,
+    PRICE
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditPriceDialog(
@@ -61,6 +70,8 @@ fun AddEditPriceDialog(
     initialIsPromotion: Boolean = false,
     initialNote: String? = null,
     initialPhotoUri: String? = null,
+    initialProductImageUri: String? = null,
+    initialPricePhotoUri: String? = null,
     isEditingPrice: Boolean = false,
     allShops: List<Shop>,
     allGoods: List<Good>,
@@ -87,16 +98,23 @@ fun AddEditPriceDialog(
         note: String?
     ) -> Unit,
     onOpenAiScanner: () -> Unit,
-    onOpenBarcodeScanner: () -> Unit
+    onOpenBarcodeScanner: () -> Unit,
+    // Callbacks so HomeScreen can persist images into ViewModel draft before rotation
+    onProductImageSaved: (String?) -> Unit = {},
+    onPricePhotoSaved: (String?) -> Unit = {},
+    // Pending photo target name from ViewModel (to recover if local state lost)
+    pendingPhotoTargetNameFromVm: String? = null,
+    // Callback to set/clear pending photo target name in ViewModel
+    onSetPendingPhotoTargetName: (String?) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lang = LocalAppLanguage.current
     val currentCurrency = LocalAppCurrency.current
 
-    var goodName by remember { mutableStateOf(initialGood?.name ?: "") }
-    var selectedCategory by remember { mutableStateOf(initialGood?.category ?: "Dairy") }
-    var barcodeText by remember { mutableStateOf(initialGood?.barcode ?: initialBarcode ?: "") }
-    var weightText by remember {
+    var goodName by rememberSaveable { mutableStateOf(initialGood?.name ?: "") }
+    var selectedCategory by rememberSaveable { mutableStateOf(initialGood?.category ?: AppStrings.defaultCategories.first()) }
+    var barcodeText by rememberSaveable { mutableStateOf(initialGood?.barcode ?: initialBarcode ?: "") }
+    var weightText by rememberSaveable {
         mutableStateOf(
             if (initialGood != null && initialGood.weight > 0) {
                 if (initialGood.weight == initialGood.weight.toInt().toDouble()) "${initialGood.weight.toInt()}" else "${initialGood.weight}"
@@ -105,25 +123,25 @@ fun AddEditPriceDialog(
             } else "500"
         )
     }
-    var weightUnit by remember { mutableStateOf(initialGood?.weightUnit ?: initialPackageUnit ?: "g") }
+    var weightUnit by rememberSaveable { mutableStateOf(initialGood?.weightUnit ?: initialPackageUnit ?: "g") }
 
-    var shopName by remember { mutableStateOf(initialShop?.name ?: (allShops.firstOrNull()?.name ?: "Tesco")) }
-    var shopAddress by remember { mutableStateOf(initialShop?.address ?: "") }
-    var regularPriceText by remember {
+    var shopName by rememberSaveable { mutableStateOf(initialShop?.name ?: (allShops.firstOrNull()?.name ?: "Tesco")) }
+    var shopAddress by rememberSaveable { mutableStateOf(initialShop?.address ?: "") }
+    var regularPriceText by rememberSaveable {
         mutableStateOf(
             if (initialRegularPrice != null && initialRegularPrice > 0) {
                 if (initialRegularPrice == initialRegularPrice.toInt().toDouble()) "${initialRegularPrice.toInt()}" else "$initialRegularPrice"
             } else ""
         )
     }
-    var discountPriceText by remember {
+    var discountPriceText by rememberSaveable {
         mutableStateOf(
             if (initialDiscountPrice != null && initialDiscountPrice > 0) {
                 if (initialDiscountPrice == initialDiscountPrice.toInt().toDouble()) "${initialDiscountPrice.toInt()}" else "$initialDiscountPrice"
             } else ""
         )
     }
-    var packageAmountText by remember {
+    var packageAmountText by rememberSaveable {
         mutableStateOf(
             if (initialPackageAmount != null && initialPackageAmount > 0) {
                 if (initialPackageAmount == initialPackageAmount.toInt().toDouble()) "${initialPackageAmount.toInt()}" else "$initialPackageAmount"
@@ -132,10 +150,14 @@ fun AddEditPriceDialog(
             } else "500"
         )
     }
-    var packageUnit by remember { mutableStateOf(initialPackageUnit ?: initialGood?.weightUnit ?: "g") }
-    var noteText by remember { mutableStateOf(initialNote ?: "") }
-    var isPromotion by remember { mutableStateOf(initialIsPromotion || (initialDiscountPrice != null && initialDiscountPrice > 0)) }
-    var imagePath by remember { mutableStateOf(initialPhotoUri ?: initialGood?.imageUri) }
+    var packageUnit by rememberSaveable { mutableStateOf(initialPackageUnit ?: initialGood?.weightUnit ?: "g") }
+    var noteText by rememberSaveable { mutableStateOf(initialNote ?: "") }
+    var isPromotion by rememberSaveable { mutableStateOf(initialIsPromotion || (initialDiscountPrice != null && initialDiscountPrice > 0)) }
+    var productImagePath by rememberSaveable { mutableStateOf(initialProductImageUri ?: initialGood?.imageUri ?: initialPhotoUri) }
+    var pricePhotoPath by rememberSaveable { mutableStateOf(initialPricePhotoUri ?: initialPhotoUri) }
+    var showPhotoSourceDialog by rememberSaveable { mutableStateOf(false) }
+    // Persist which photo target was requested across rotation: save the enum name string
+    var selectedPhotoTargetName by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Active tooltip dialog state
     var activeTooltipTitle by remember { mutableStateOf<String?>(null) }
@@ -146,7 +168,7 @@ fun AddEditPriceDialog(
         if (allCategories.isNotEmpty()) {
             allCategories.map { it.name }
         } else {
-            listOf("Dairy", "Fruits & Veg", "Meat & Fish", "Bakery", "Beverages", "Pantry", "Snacks", "Household", "Other")
+            AppStrings.defaultCategories
         }
     }
 
@@ -162,25 +184,99 @@ fun AddEditPriceDialog(
         packageUnit = weightUnit
     }
 
-    // Image Picker Launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    // Image Picker Launchers
+    fun savePickedImage(uri: Uri, prefix: String): String? {
+        return try {
+            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
+            } else {
+                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+            }
+            val file = File(context.filesDir, "${prefix}_${System.currentTimeMillis()}.jpg")
+            file.outputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    val productImagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            try {
-                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
-                } else {
-                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-                }
-                val file = File(context.filesDir, "good_${System.currentTimeMillis()}.jpg")
-                file.outputStream().use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-                }
-                imagePath = file.absolutePath
-            } catch (e: Exception) {
-                e.printStackTrace()
+            savePickedImage(uri, "product")?.let {
+                productImagePath = it
+                onProductImageSaved(it)
             }
+        }
+    }
+
+    val pricePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            savePickedImage(uri, "price_photo")?.let {
+                pricePhotoPath = it
+                onPricePhotoSaved(it)
+            }
+        }
+    }
+
+    fun saveBitmapToFile(bitmap: Bitmap, prefix: String): String? {
+        return try {
+            val file = File(context.filesDir, "${prefix}_${System.currentTimeMillis()}.jpg")
+            file.outputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    val cameraPreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            val targetName = selectedPhotoTargetName ?: pendingPhotoTargetNameFromVm
+            val target = targetName?.let { PhotoTarget.valueOf(it) } ?: return@rememberLauncherForActivityResult
+            val savedPath = saveBitmapToFile(bitmap, if (target == PhotoTarget.PRODUCT) "product" else "price_photo")
+            if (target == PhotoTarget.PRODUCT) {
+                productImagePath = savedPath
+                onProductImageSaved(savedPath)
+            } else {
+                pricePhotoPath = savedPath
+                onPricePhotoSaved(savedPath)
+            }
+            selectedPhotoTargetName = null
+            onSetPendingPhotoTargetName(null)
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted: Boolean ->
+        if (granted) {
+            cameraPreviewLauncher.launch(null)
+        } else {
+            selectedPhotoTargetName = null
+            onSetPendingPhotoTargetName(null)
+        }
+    }
+
+    fun launchCameraFor(target: PhotoTarget) {
+        selectedPhotoTargetName = target.name
+        onSetPendingPhotoTargetName(target.name)
+        val permission = Manifest.permission.CAMERA
+        val hasPermission = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            cameraPreviewLauncher.launch(null)
+        } else {
+            cameraPermissionLauncher.launch(permission)
         }
     }
 
@@ -361,14 +457,17 @@ fun AddEditPriceDialog(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                                .clickable { imagePickerLauncher.launch("image/*") }
+                                .clickable {
+                                    selectedPhotoTargetName = PhotoTarget.PRODUCT.name
+                                    showPhotoSourceDialog = true
+                                }
                                 .testTag("pick_good_image_button"),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (imagePath != null) {
+                            if (productImagePath != null) {
                                 AsyncImage(
-                                    model = File(imagePath!!),
-                                    contentDescription = "Goods photo",
+                                    model = File(productImagePath!!),
+                                    contentDescription = "Product photo",
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -376,12 +475,51 @@ fun AddEditPriceDialog(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(
                                         imageVector = Icons.Outlined.AddPhotoAlternate,
-                                        contentDescription = "Pick image",
+                                        contentDescription = "Pick product image",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
                                         text = AppStrings.photoLabel(lang),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        color = greyLabelColor
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    selectedPhotoTargetName = PhotoTarget.PRICE.name
+                                    showPhotoSourceDialog = true
+                                }
+                                .testTag("pick_price_photo_button"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (pricePhotoPath != null) {
+                                AsyncImage(
+                                    model = File(pricePhotoPath!!),
+                                    contentDescription = "Price photo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ReceiptLong,
+                                        contentDescription = "Pick price photo",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Price",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                         color = greyLabelColor
                                     )
@@ -871,14 +1009,14 @@ fun AddEditPriceDialog(
                                     barcodeText.ifBlank { null }?.trim(),
                                     weightText.toDoubleOrNull() ?: 0.0,
                                     weightUnit,
-                                    imagePath,
+                                    productImagePath,
                                     shopName.trim(),
                                     shopAddress.trim(),
                                     regPrice,
                                     discPrice,
                                     pkgAmount,
                                     packageUnit,
-                                    imagePath,
+                                    pricePhotoPath,
                                     isPromotion,
                                     noteText.ifBlank { null }?.trim()
                                 )
@@ -896,6 +1034,65 @@ fun AddEditPriceDialog(
                 }
             }
         }
+    }
+
+    if (showPhotoSourceDialog && selectedPhotoTargetName != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showPhotoSourceDialog = false
+                selectedPhotoTargetName = null
+                onSetPendingPhotoTargetName(null)
+            },
+            title = { Text("Choose photo source") },
+            text = {
+                Text(
+                    text = if (selectedPhotoTargetName == PhotoTarget.PRODUCT.name) "Add a product picture from camera or gallery." else "Add a price tag photo from camera or gallery.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // convert saved name back to enum safely and launch camera
+                        selectedPhotoTargetName?.let { name ->
+                            launchCameraFor(PhotoTarget.valueOf(name))
+                        }
+                        showPhotoSourceDialog = false
+                    }
+                ) {
+                    Text("Camera")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            val st = selectedPhotoTargetName?.let { PhotoTarget.valueOf(it) }
+                            when (st) {
+                                PhotoTarget.PRODUCT -> productImagePickerLauncher.launch("image/*")
+                                PhotoTarget.PRICE -> pricePhotoPickerLauncher.launch("image/*")
+                                null -> Unit
+                            }
+                            showPhotoSourceDialog = false
+                            selectedPhotoTargetName = null
+                            onSetPendingPhotoTargetName(null)
+                        }
+                    ) {
+                        Text("Gallery")
+                    }
+                    TextButton(
+                        onClick = {
+                            showPhotoSourceDialog = false
+                            selectedPhotoTargetName = null
+                            onSetPendingPhotoTargetName(null)
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 
     // Parameter Tooltip Dialog

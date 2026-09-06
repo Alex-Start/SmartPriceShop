@@ -15,6 +15,10 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,8 +28,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.GoodWithPrices
 import com.example.data.model.PriceTrend
@@ -39,11 +45,107 @@ import com.example.util.UnitPriceCalculator
 import java.io.File
 
 @Composable
+fun ProductPhotoGallery(
+    productImageUri: String?,
+    priceImageUri: String?,
+    productLabel: String,
+    priceLabel: String,
+    modifier: Modifier = Modifier,
+    thumbSize: Dp = 44.dp,
+    spacing: Dp = 6.dp
+) {
+    var expandedImage by remember { mutableStateOf<String?>(null) }
+    val visibleItems = listOfNotNull(
+        productImageUri?.let { Pair(productLabel, it) },
+        priceImageUri?.let { Pair(priceLabel, it) }
+    ).take(2)
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (visibleItems.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .size(thumbSize)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Image,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(thumbSize * 0.5f)
+                )
+            }
+            return@Row
+        }
+
+        visibleItems.forEach { (label, uri) ->
+            Box(
+                modifier = Modifier
+                    .size(thumbSize)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { expandedImage = uri }
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = File(uri),
+                    contentDescription = label,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+    }
+
+    expandedImage?.let { uri ->
+        Dialog(onDismissRequest = { expandedImage = null }) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .fillMaxWidth(0.96f)
+                    .aspectRatio(1f)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(
+                        model = File(uri),
+                        contentDescription = "Expanded image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                    IconButton(
+                        onClick = { expandedImage = null },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun PriceComparisonCard(
     item: GoodWithPrices,
     onClick: () -> Unit,
     onAddPriceClick: () -> Unit,
     onAddToListClick: () -> Unit,
+    // converter: convert stored amount (in record currency) to display amount in current app currency
+    convertAmountForDisplay: (Double, String?) -> Double,
+    formatAmountForDisplay: (Double, String?) -> String,
     modifier: Modifier = Modifier
 ) {
     val lang = LocalAppLanguage.current
@@ -70,30 +172,16 @@ fun PriceComparisonCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Product Thumbnail (56x56 rounded-lg)
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (item.good.imageUri != null) {
-                        AsyncImage(
-                            model = File(item.good.imageUri),
-                            contentDescription = item.good.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Outlined.Image,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
+                // Product and price photos (side-by-side)
+                ProductPhotoGallery(
+                    productImageUri = item.good.imageUri,
+                    priceImageUri = item.cheapestShopDetail?.priceRecord?.photoUri,
+                    productLabel = item.good.name,
+                    priceLabel = "${item.good.name} price photo",
+                    modifier = Modifier,
+                    thumbSize = 28.dp,
+                    spacing = 6.dp
+                )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
@@ -119,8 +207,10 @@ fun PriceComparisonCard(
                         if (item.cheapestShopDetail != null) {
                             val cheapest = item.cheapestShopDetail
                             val isDiscount = cheapest.priceRecord.discountPrice != null && cheapest.priceRecord.discountPrice > 0
+                            // convert stored amount -> display currency
+                            val convertedStr = formatAmountForDisplay(cheapest.priceRecord.effectivePrice, cheapest.priceRecord.currencyCode)
                             Text(
-                                text = UnitPriceCalculator.formatCurrency(cheapest.priceRecord.effectivePrice, currentCurrency),
+                                text = convertedStr,
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = if (isDiscount) DealGreen else MaterialTheme.colorScheme.onSurface
@@ -137,9 +227,12 @@ fun PriceComparisonCard(
                         val cheapest = item.cheapestShopDetail
                         val weightStr = if (item.good.weight > 0) " (${UnitPriceCalculator.formatWeight(item.good.weight, item.good.weightUnit)})" else ""
                         val pricePerGramStr = if (item.good.weight > 0) {
-                            " • ${UnitPriceCalculator.formatPricePerGram(cheapest.priceRecord.effectivePrice, item.good.weight, item.good.weightUnit, currency = currentCurrency)}"
+                            // convert numeric price to display currency then format
+                            val converted = convertAmountForDisplay(cheapest.priceRecord.effectivePrice, cheapest.priceRecord.currencyCode)
+                            " • ${UnitPriceCalculator.formatPricePerGram(converted, item.good.weight, item.good.weightUnit, currency = currentCurrency)}"
                         } else if (cheapest.priceRecord.pricePerUnit > 0) {
-                            " • ${UnitPriceCalculator.formatUnitPrice(cheapest.priceRecord.pricePerUnit, cheapest.priceRecord.unitMeasureLabel, currentCurrency)}"
+                            val convertedUnit = convertAmountForDisplay(cheapest.priceRecord.pricePerUnit, cheapest.priceRecord.currencyCode)
+                            " • ${UnitPriceCalculator.formatUnitPrice(convertedUnit, cheapest.priceRecord.unitMeasureLabel, currentCurrency)}"
                         } else ""
 
                         Text(
@@ -232,7 +325,7 @@ fun PriceComparisonCard(
 
                             if (isDiscount) {
                                 Text(
-                                    text = "${AppStrings.prevPrice(lang)} ${UnitPriceCalculator.formatCurrency(cheapest.priceRecord.regularPrice, currentCurrency)}",
+                                    text = "${AppStrings.prevPrice(lang)} ${UnitPriceCalculator.formatCurrencyWithConversion(cheapest.priceRecord.regularPrice, cheapest.priceRecord.currencyCode, currentCurrency)}",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 10.sp,
                                         color = HighDensityTextMuted,
@@ -349,7 +442,7 @@ fun ShopPriceChip(
 
         // Price
         Text(
-            text = UnitPriceCalculator.formatCurrency(shopPrice.priceRecord.effectivePrice, currentCurrency),
+            text = UnitPriceCalculator.formatCurrencyWithConversion(shopPrice.priceRecord.effectivePrice, shopPrice.priceRecord.currencyCode, currentCurrency),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,

@@ -467,7 +467,20 @@ fun BarcodeScannerScreen(
 
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
-                                            text = matchedGoodWithPrices.priceRangeText,
+                                            text = run {
+                                                val min = matchedGoodWithPrices.priceMin
+                                                val max = matchedGoodWithPrices.priceMax
+                                                val minCode = matchedGoodWithPrices.priceMinCurrencyCode
+                                                val maxCode = matchedGoodWithPrices.priceMaxCurrencyCode
+                                                val cur = com.example.util.LocalAppCurrency.current
+                                                if (min == null || max == null) "No price recorded yet"
+                                                else if (min == max) UnitPriceCalculator.formatCurrencyWithConversion(min, minCode, cur)
+                                                else {
+                                                    val minStr = UnitPriceCalculator.formatCurrencyWithConversion(min, minCode, cur)
+                                                    val maxStr = UnitPriceCalculator.formatCurrencyWithConversion(max, maxCode, cur)
+                                                    "$minStr - $maxStr"
+                                                }
+                                            },
                                             style = MaterialTheme.typography.titleSmall.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 color = SapphireBrand

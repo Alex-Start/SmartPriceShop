@@ -17,8 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.CategoryType
 import com.example.ui.theme.*
 
 @Composable
@@ -26,7 +28,7 @@ fun CategoryPill(
     category: String,
     modifier: Modifier = Modifier
 ) {
-    val (icon, bgColor, textColor, borderColor) = when (category.lowercase()) {
+    /*val (icon, bgColor, textColor, borderColor) = when (category.lowercase()) {
         "dairy" -> Quadruple(Icons.Outlined.Egg, Color(0xFFE8F5E9), Color(0xFF1B5E20), Color(0xFFC8E6C9))
         "fruits & veg", "fruits", "vegetables" -> Quadruple(Icons.Outlined.Eco, Color(0xFFF1F8E9), Color(0xFF33691E), Color(0xFFDCEDC8))
         "meat & fish", "meat", "fish" -> Quadruple(Icons.Outlined.SetMeal, Color(0xFFFFEBEE), Color(0xFFB71C1C), Color(0xFFFFCDD2))
@@ -36,7 +38,13 @@ fun CategoryPill(
         "snacks" -> Quadruple(Icons.Outlined.Fastfood, Color(0xFFFFF8E1), Color(0xFFF57F17), Color(0xFFFFECB3))
         "household" -> Quadruple(Icons.Outlined.CleaningServices, Color(0xFFE0F2F1), Color(0xFF004D40), Color(0xFFB2DFDB))
         else -> Quadruple(Icons.Outlined.ShoppingBag, HighDensityPillBg, HighDensityTextSecondary, HighDensityBorder)
-    }
+    }*/
+
+    val categoryType = CategoryType.fromName(category)
+    val icon = categoryType.icon
+    val bgColor = categoryType.bgColor
+    val textColor = categoryType.textColor
+    val borderColor = categoryType.borderColor
 
     Row(
         modifier = modifier

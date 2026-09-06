@@ -271,12 +271,12 @@ fun ShoppingListsScreen(
                                 onClick = {
                                     val listText = buildString {
                                         appendLine("🛒 Shopping List: ${activeList.list.name}")
-                                        appendLine("Estimated Cost: ${UnitPriceCalculator.formatCurrency(activeList.totalEstimatedCost, currentCurrency)}")
+                                        appendLine("Estimated Cost: ${UnitPriceCalculator.formatCurrencyWithConversion(activeList.totalEstimatedCost, null, currentCurrency)}")
                                         appendLine()
                                         if (uncheckedItems.isNotEmpty()) {
                                             appendLine("To Buy:")
                                             uncheckedItems.forEach {
-                                                appendLine("• ${it.name} x${it.quantity} ${it.unit} (${UnitPriceCalculator.formatCurrency(it.totalEstimatedPrice, currentCurrency)})")
+                                                appendLine("• ${it.name} x${it.quantity} ${it.unit} (${UnitPriceCalculator.formatCurrencyWithConversion(it.totalEstimatedPrice, null, currentCurrency)})")
                                             }
                                         }
                                         if (checkedItems.isNotEmpty()) {
@@ -320,7 +320,7 @@ fun ShoppingListsScreen(
                                 style = MaterialTheme.typography.labelSmall.copy(color = HighDensityTextSecondary)
                             )
                             Text(
-                                text = UnitPriceCalculator.formatCurrency(activeList.totalEstimatedCost, currentCurrency),
+                                text = UnitPriceCalculator.formatCurrencyWithConversion(activeList.totalEstimatedCost, null, currentCurrency),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = SapphireBrand
@@ -631,7 +631,7 @@ fun ShoppingListItemRow(
 
                         if (item.estimatedUnitPrice > 0.0) {
                             Text(
-                                text = " • ${UnitPriceCalculator.formatCurrency(item.totalEstimatedPrice, currentCurrency)}",
+                                text = " • ${UnitPriceCalculator.formatCurrencyWithConversion(item.totalEstimatedPrice, null, currentCurrency)}",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,

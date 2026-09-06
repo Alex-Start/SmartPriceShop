@@ -43,7 +43,7 @@ object UnitPriceCalculator {
         amount: Double,
         unit: String,
         includeDetailedGram: Boolean = false,
-        currency: AppCurrency = AppCurrency.USD
+        currency: AppCurrency = AppCurrency.CZK
     ): String? {
         val pricePerG = calculatePricePerGram(price, amount, unit) ?: return null
         val pricePer100g = pricePerG * 100.0
@@ -74,7 +74,7 @@ object UnitPriceCalculator {
         amount: Double,
         unit: String,
         targetStandard: String = "per 100g",
-        currency: AppCurrency = AppCurrency.USD
+        currency: AppCurrency = AppCurrency.CZK
     ): Pair<Double, String> {
         val sym = currency.symbol
         if (price <= 0.0 || amount <= 0.0) {
@@ -131,13 +131,23 @@ object UnitPriceCalculator {
         }
     }
 
-    fun formatCurrency(amount: Double, currency: AppCurrency = AppCurrency.USD): String {
+    fun formatCurrency(amount: Double, currency: AppCurrency = AppCurrency.CZK): String {
         return currency.format(amount)
     }
 
-    fun formatUnitPrice(unitPrice: Double, label: String, currency: AppCurrency = AppCurrency.USD): String {
+    fun formatUnitPrice(unitPrice: Double, label: String, currency: AppCurrency = AppCurrency.CZK): String {
         val cleanLabel = label.replace(currency.symbol, "").replace("$", "").replace("€", "").replace("₴", "").replace("Kč", "").trim()
         val formattedPrice = currency.format(unitPrice)
         return "$formattedPrice $cleanLabel"
+    }
+
+    /**
+     * Formats an amount stored in sourceCurrencyCode (default CZK) into the target AppCurrency,
+     * performing conversion based on CurrencyRates.
+     */
+    fun formatCurrencyWithConversion(amount: Double, sourceCurrencyCode: String? = AppCurrency.CZK.code, targetCurrency: AppCurrency = AppCurrency.CZK): String {
+        val src = sourceCurrencyCode ?: AppCurrency.CZK.code
+        val converted = CurrencyRates.convert(amount, src, targetCurrency.code)
+        return targetCurrency.format(converted)
     }
 }

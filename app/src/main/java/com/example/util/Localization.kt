@@ -1,7 +1,7 @@
 package com.example.util
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.example.data.model.CategoryType
 
 enum class AppLanguage(
     val code: String,
@@ -52,10 +52,90 @@ enum class AppCurrency(
 val LocalAppCurrency = staticCompositionLocalOf { AppCurrency.USD }
 
 object AppStrings {
+    const val ALL = "All"
+    val defaultCategories = CategoryType.entries.map { it.displayName }
+        /*listOf(
+        "Dairy",
+        "Fruits & Veg",
+        "Meat & Fish",
+        "Bakery",
+        "Beverages",
+        "Pantry",
+        "Snacks",
+        "Household",
+        "Other"
+    )*/
 
     fun getCategoryName(category: String, lang: AppLanguage): String {
-        return when (category) {
-            "All" -> when (lang) {
+        if (category == ALL) {
+            return when (lang) {
+                AppLanguage.ENGLISH -> "All"
+                AppLanguage.UKRAINIAN -> "Всі"
+                AppLanguage.CZECH -> "Vše"
+            }
+        }
+
+        return when (CategoryType.fromName(category)) {
+
+            CategoryType.DAIRY -> when (lang) {
+                AppLanguage.ENGLISH -> "Dairy"
+                AppLanguage.UKRAINIAN -> "Молочні продукти"
+                AppLanguage.CZECH -> "Mléčné výrobky"
+            }
+
+            CategoryType.FRUITS_VEG -> when (lang) {
+                AppLanguage.ENGLISH -> "Fruits & Veg"
+                AppLanguage.UKRAINIAN -> "Овочі та фрукти"
+                AppLanguage.CZECH -> "Ovoce a zelenina"
+            }
+
+            CategoryType.MEAT_FISH -> when (lang) {
+                AppLanguage.ENGLISH -> "Meat & Fish"
+                AppLanguage.UKRAINIAN -> "М'ясо та риба"
+                AppLanguage.CZECH -> "Maso a ryby"
+            }
+
+            CategoryType.BAKERY -> when (lang) {
+                AppLanguage.ENGLISH -> "Bakery"
+                AppLanguage.UKRAINIAN -> "Випічка"
+                AppLanguage.CZECH -> "Pečivo"
+            }
+
+            CategoryType.BEVERAGES -> when (lang) {
+                AppLanguage.ENGLISH -> "Beverages"
+                AppLanguage.UKRAINIAN -> "Напої"
+                AppLanguage.CZECH -> "Nápoje"
+            }
+
+            CategoryType.PANTRY -> when (lang) {
+                AppLanguage.ENGLISH -> "Pantry"
+                AppLanguage.UKRAINIAN -> "Бакалія"
+                AppLanguage.CZECH -> "Trvanlivé potraviny"
+            }
+
+            CategoryType.SNACKS -> when (lang) {
+                AppLanguage.ENGLISH -> "Snacks"
+                AppLanguage.UKRAINIAN -> "Снеки та солодощі"
+                AppLanguage.CZECH -> "Pochutiny"
+            }
+
+            CategoryType.HOUSEHOLD -> when (lang) {
+                AppLanguage.ENGLISH -> "Household"
+                AppLanguage.UKRAINIAN -> "Побутова хімія"
+                AppLanguage.CZECH -> "Domácnost"
+            }
+
+            CategoryType.OTHER -> when (lang) {
+                AppLanguage.ENGLISH -> "Other"
+                AppLanguage.UKRAINIAN -> "Інше"
+                AppLanguage.CZECH -> "Ostatní"
+            }
+
+            null -> category
+        }
+
+        /*return when (category) {
+            ALL -> when (lang) {
                 AppLanguage.ENGLISH -> "All"
                 AppLanguage.UKRAINIAN -> "Всі"
                 AppLanguage.CZECH -> "Vše"
@@ -106,7 +186,7 @@ object AppStrings {
                 AppLanguage.CZECH -> "Ostatní"
             }
             else -> category
-        }
+        }*/
     }
 
     fun appName(lang: AppLanguage) = "Smart Price"

@@ -3,6 +3,7 @@ package com.example.data.model
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.example.util.AppCurrency
 import com.squareup.moshi.JsonClass
 
 @Entity(
@@ -26,6 +27,7 @@ data class PriceHistory(
     val pricePerUnit: Double = 0.0,
     val note: String? = null,
     val photoUri: String? = null,
+    val currencyCode: String = AppCurrency.CZK.code,
     val recordedAt: Long = System.currentTimeMillis()
 ) {
     val effectivePrice: Double
