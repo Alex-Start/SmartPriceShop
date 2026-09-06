@@ -33,9 +33,9 @@ enum class SortOption {
 
     fun getLabel(lang: AppLanguage = AppLanguage.ENGLISH): String = when (this) {
         PRICE_PER_ITEM -> when (lang) {
-            AppLanguage.ENGLISH -> "Price: Lowest Per Item"
-            AppLanguage.UKRAINIAN -> "Ціна: Від найдешевшого (за шт)"
-            AppLanguage.CZECH -> "Cena: Od nejlevnějšího (za kus)"
+            AppLanguage.ENGLISH -> "Price: per item"
+            AppLanguage.UKRAINIAN -> "Ціна: за штуку"
+            AppLanguage.CZECH -> "Cena: za kus"
         }
         PRICE_PER_GRAM -> when (lang) {
             AppLanguage.ENGLISH -> "Price: Lowest Per Gram / 100g"
