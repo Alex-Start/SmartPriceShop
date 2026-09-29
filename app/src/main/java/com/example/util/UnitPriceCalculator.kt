@@ -136,7 +136,8 @@ object UnitPriceCalculator {
     }
 
     fun formatUnitPrice(unitPrice: Double, label: String, currency: AppCurrency = AppCurrency.CZK): String {
-        val cleanLabel = label.replace(currency.symbol, "").replace("$", "").replace("€", "").replace("₴", "").replace("Kč", "").trim()
+        //val cleanLabel = label.replace(currency.symbol, "").replace("$", "").replace("€", "").replace("₴", "").replace("Kč", "").trim()
+        val cleanLabel = label.replace(currency.symbol, "").trim()
         val formattedPrice = currency.format(unitPrice)
         return "$formattedPrice $cleanLabel"
     }

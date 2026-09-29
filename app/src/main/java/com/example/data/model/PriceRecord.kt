@@ -25,7 +25,7 @@ data class PriceRecord(
     val packageAmount: Double = 1.0, // e.g. 500
     val packageUnit: String = "g", // "g", "kg", "ml", "L", "item", "pcs", "pack"
     val pricePerUnit: Double = 0.0, // standardized calculated unit price (e.g. price per 100g or per 1kg or per item)
-    val unitMeasureLabel: String = "$/100g",
+    val unitMeasureLabel: String = "/100g",
     val isPromotion: Boolean = false,
     val promoEndDate: Long? = null,
     val photoUri: String? = null,
