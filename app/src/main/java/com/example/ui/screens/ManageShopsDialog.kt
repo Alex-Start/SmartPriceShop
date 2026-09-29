@@ -26,6 +26,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.Shop
 import com.example.ui.components.parseColor
 import com.example.ui.theme.*
+import com.example.util.AppStrings
+import com.example.util.LocalAppLanguage
 
 @Composable
 fun ManageShopsDialog(
@@ -34,6 +36,7 @@ fun ManageShopsDialog(
     onAddShop: (name: String, address: String) -> Unit,
     onDeleteShop: (Long) -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     var newShopName by remember { mutableStateOf("") }
     var newShopAddress by remember { mutableStateOf("") }
     var showAddForm by remember { mutableStateOf(false) }
@@ -81,7 +84,7 @@ fun ManageShopsDialog(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Manage Supermarkets",
+                            text = AppStrings.manageStores(lang),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = HighDensityTextPrimary
@@ -90,7 +93,7 @@ fun ManageShopsDialog(
                     }
 
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = HighDensityTextSecondary)
+                        Icon(imageVector = Icons.Default.Close, contentDescription = AppStrings.close(lang), tint = HighDensityTextSecondary)
                     }
                 }
 
@@ -108,7 +111,7 @@ fun ManageShopsDialog(
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add New Supermarket", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(AppStrings.addNewSupermarket(lang), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                 } else {
                     Card(
@@ -121,7 +124,7 @@ fun ManageShopsDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "New Supermarket Details",
+                                text = AppStrings.newSupermarketDetails(lang),
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = HighDensityTextPrimary
@@ -131,8 +134,8 @@ fun ManageShopsDialog(
                             OutlinedTextField(
                                 value = newShopName,
                                 onValueChange = { newShopName = it },
-                                label = { Text("Supermarket Name *") },
-                                placeholder = { Text("e.g. Costco, Trader Joe's, Target") },
+                                label = { Text("${AppStrings.storeName(lang)} *") },
+                                placeholder = { Text("${AppStrings.placeholderExampleSupermarket(lang)}") },
                                 singleLine = true,
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier
@@ -143,8 +146,8 @@ fun ManageShopsDialog(
                             OutlinedTextField(
                                 value = newShopAddress,
                                 onValueChange = { newShopAddress = it },
-                                label = { Text("Address / Branch") },
-                                placeholder = { Text("e.g. Downtown Branch, North Mall") },
+                                label = { Text(AppStrings.addressBranch(lang)) },
+                                placeholder = { Text(AppStrings.placeholderExampleBranch(lang)) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier
@@ -157,7 +160,7 @@ fun ManageShopsDialog(
                                 horizontalArrangement = Arrangement.End
                             ) {
                                 TextButton(onClick = { showAddForm = false }) {
-                                    Text("Cancel", color = HighDensityTextSecondary)
+                                    Text(AppStrings.cancel(lang), color = HighDensityTextSecondary)
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Button(
@@ -173,7 +176,7 @@ fun ManageShopsDialog(
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = SapphireBrand)
                                 ) {
-                                    Text("Save Supermarket", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(AppStrings.saveSupermarket(lang), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -184,7 +187,7 @@ fun ManageShopsDialog(
 
                 // List of existing shops
                 Text(
-                    text = "Registered Supermarkets (${shops.size})",
+                    text = AppStrings.registeredSupermarkets(lang, shops.size),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = HighDensityTextSecondary

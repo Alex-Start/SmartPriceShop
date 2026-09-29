@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.*
+import com.example.util.AppStrings
+import com.example.util.LocalAppLanguage
 import kotlinx.coroutines.launch
 
 @Composable
@@ -45,6 +47,7 @@ fun ImportExportDialog(
     onReloadSampleData: () -> Unit
 ) {
     val context = LocalContext.current
+    val lang = LocalAppLanguage.current
     val coroutineScope = rememberCoroutineScope()
 
     var jsonContent by remember { mutableStateOf("") }
@@ -64,11 +67,11 @@ fun ImportExportDialog(
                 context.contentResolver.openInputStream(uri)?.use { stream ->
                     val text = stream.bufferedReader().readText()
                     jsonContent = text
-                    statusMessage = "Loaded file (${text.length} chars). Ready to import."
+                    statusMessage = AppStrings.loadedFileReadyToImport(lang, text.length)
                     isErrorStatus = false
                 }
             } catch (e: Exception) {
-                statusMessage = "Failed to read file: ${e.localizedMessage}"
+                statusMessage = "${AppStrings.failedToReadFile(lang)}: ${e.localizedMessage}"
                 isErrorStatus = true
             }
         }
@@ -117,7 +120,7 @@ fun ImportExportDialog(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Backup & Data Sync",
+                            text = AppStrings.backupAndSync(lang),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = HighDensityTextPrimary
@@ -126,7 +129,7 @@ fun ImportExportDialog(
                     }
 
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = HighDensityTextSecondary)
+                        Icon(imageVector = Icons.Default.Close, contentDescription = AppStrings.close(lang), tint = HighDensityTextSecondary)
                     }
                 }
 
@@ -195,7 +198,7 @@ fun ImportExportDialog(
                                     }
                                     val shareIntent = Intent.createChooser(sendIntent, "Export Smart Price Data")
                                     context.startActivity(shareIntent)
-                                    statusMessage = "Backup ready to share/save."
+                                    statusMessage = AppStrings.backupReadyToShare(lang)
                                     isErrorStatus = false
                                 }
                             },
@@ -207,7 +210,7 @@ fun ImportExportDialog(
                         ) {
                             Icon(imageVector = Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Share Backup", style = MaterialTheme.typography.labelMedium)
+                            Text(AppStrings.shareBackup(lang), style = MaterialTheme.typography.labelMedium)
                         }
 
                         OutlinedButton(
@@ -218,7 +221,7 @@ fun ImportExportDialog(
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     val clip = ClipData.newPlainText("PriceTracker_Backup", json)
                                     clipboard.setPrimaryClip(clip)
-                                    statusMessage = "Backup JSON copied to clipboard!"
+                                    statusMessage = AppStrings.copied(lang)
                                     isErrorStatus = false
                                 }
                             },
@@ -229,7 +232,7 @@ fun ImportExportDialog(
                         ) {
                             Icon(imageVector = Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Copy JSON", style = MaterialTheme.typography.labelMedium)
+                            Text(AppStrings.copyToClipboard(lang), style = MaterialTheme.typography.labelMedium)
                         }
                     }
 
@@ -251,10 +254,10 @@ fun ImportExportDialog(
                                             context.contentResolver.openOutputStream(uri)?.use { out ->
                                                 out.write(bytes)
                                             }
-                                            statusMessage = "ZIP backup exported successfully"
+                                            statusMessage = "${AppStrings.exportJson(lang)}: ${AppStrings.backupReadyToShare(lang)}"
                                             isErrorStatus = false
                                         } catch (e: Exception) {
-                                            statusMessage = "Failed to export ZIP: ${e.localizedMessage}"
+                                            statusMessage = "${AppStrings.failedToReadFile(lang)} ZIP: ${e.localizedMessage}"
                                             isErrorStatus = true
                                         }
                                     }
@@ -271,7 +274,7 @@ fun ImportExportDialog(
                             ) {
                                 Icon(imageVector = Icons.Outlined.FolderZip, contentDescription = null, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Export ZIP (manifest+images)", style = MaterialTheme.typography.labelMedium)
+                                Text(AppStrings.exportZipManifest(lang), style = MaterialTheme.typography.labelMedium)
                             }
 
                             OutlinedButton(
@@ -285,7 +288,7 @@ fun ImportExportDialog(
                             ) {
                                 Icon(imageVector = Icons.Outlined.Link, contentDescription = null, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Export ZIP (Save...)", style = MaterialTheme.typography.labelMedium)
+                                Text(AppStrings.exportZipSave(lang), style = MaterialTheme.typography.labelMedium)
                             }
                         }
 
@@ -319,7 +322,7 @@ fun ImportExportDialog(
                     ) {
                         Icon(imageVector = Icons.Outlined.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Pick Backup File (.json or .zip)", style = MaterialTheme.typography.labelMedium)
+                        Text(AppStrings.pickBackupFile(lang), style = MaterialTheme.typography.labelMedium)
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -345,7 +348,7 @@ fun ImportExportDialog(
                     ) {
                         Icon(imageVector = Icons.Outlined.FolderZip, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Import Backup (.zip)", style = MaterialTheme.typography.labelMedium)
+                        Text(AppStrings.importJson(lang), style = MaterialTheme.typography.labelMedium)
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -353,8 +356,8 @@ fun ImportExportDialog(
                     OutlinedTextField(
                         value = jsonContent,
                         onValueChange = { jsonContent = it },
-                        label = { Text("Backup JSON Content") },
-                        placeholder = { Text("Paste JSON backup string here...") },
+                        label = { Text(AppStrings.backupJsonContent(lang)) },
+                        placeholder = { Text(AppStrings.pasteJsonBackupString(lang)) },
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -378,14 +381,14 @@ fun ImportExportDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = if (overwriteMode) "Overwrite Existing Database" else "Merge with Existing Data",
+                                text = if (overwriteMode) AppStrings.overwriteExistingDatabase(lang) else AppStrings.mergeWithExistingData(lang),
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     color = HighDensityTextPrimary
                                 )
                             )
                             Text(
-                                text = if (overwriteMode) "Replaces all current goods, shops and history." else "Preserves current items and appends new records.",
+                                text = if (overwriteMode) AppStrings.replaceAllDataWarning(lang) else AppStrings.preserveDataWarning(lang),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 10.sp,
                                     color = HighDensityTextSecondary
@@ -414,7 +417,7 @@ fun ImportExportDialog(
                     ) {
                         Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Import & Restore Data", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(AppStrings.importAndRestoreData(lang), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -423,7 +426,7 @@ fun ImportExportDialog(
 
                     // 3. Clean Up & Reset Section
                     Text(
-                        text = "3. Clean Up & Maintenance",
+                        text = AppStrings.cleanUpMaintenance(lang),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = HighDensityTextPrimary
@@ -448,7 +451,7 @@ fun ImportExportDialog(
                         ) {
                             Icon(imageVector = Icons.Outlined.CleaningServices, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Clear History", style = MaterialTheme.typography.labelSmall)
+                            Text(AppStrings.clearHistory(lang), style = MaterialTheme.typography.labelSmall)
                         }
 
                         OutlinedButton(
@@ -464,7 +467,7 @@ fun ImportExportDialog(
                         ) {
                             Icon(imageVector = Icons.Outlined.DeleteForever, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Reset All", style = MaterialTheme.typography.labelSmall)
+                            Text(AppStrings.resetAll(lang), style = MaterialTheme.typography.labelSmall)
                         }
                     }
 
@@ -483,7 +486,7 @@ fun ImportExportDialog(
                     ) {
                         Icon(imageVector = Icons.Outlined.Store, contentDescription = null, modifier = Modifier.size(15.dp), tint = SapphireBrand)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Re-load Sample Supermarket Dataset", style = MaterialTheme.typography.labelMedium)
+                        Text(AppStrings.reloadSampleDataset(lang), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -494,25 +497,25 @@ fun ImportExportDialog(
     if (showClearHistoryConfirm) {
         AlertDialog(
             onDismissRequest = { showClearHistoryConfirm = false },
-            title = { Text("Clear All Price History?", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
-            text = { Text("This will purge all historical price points across all goods and supermarkets. Current active prices will remain untouched.", style = MaterialTheme.typography.bodySmall) },
+            title = { Text(AppStrings.clearAllPriceHistory(lang), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+            text = { Text(AppStrings.clearHistoryWarning(lang), style = MaterialTheme.typography.bodySmall) },
             confirmButton = {
                 Button(
                     onClick = {
                         showClearHistoryConfirm = false
                         onClearHistory()
-                        statusMessage = "All price history records cleared."
+                        statusMessage = AppStrings.allPriceHistoryCleared(lang)
                         isErrorStatus = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Clear All History")
+                    Text(AppStrings.clearAllPriceHistory(lang))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearHistoryConfirm = false }) {
-                    Text("Cancel")
+                    Text(AppStrings.cancel(lang))
                 }
             }
         )
@@ -522,25 +525,25 @@ fun ImportExportDialog(
     if (showResetAllConfirm) {
         AlertDialog(
             onDismissRequest = { showResetAllConfirm = false },
-            title = { Text("Reset Entire Database?", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
-            text = { Text("This will delete all products, registered supermarkets, price records, and price history permanently. This action cannot be undone.", style = MaterialTheme.typography.bodySmall) },
+            title = { Text(AppStrings.resetEntireDatabase(lang), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+            text = { Text(AppStrings.resetDatabaseWarning(lang), style = MaterialTheme.typography.bodySmall) },
             confirmButton = {
                 Button(
                     onClick = {
                         showResetAllConfirm = false
                         onResetAll()
-                        statusMessage = "Database has been completely reset."
+                        statusMessage = AppStrings.databaseResetComplete(lang)
                         isErrorStatus = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Delete Everything")
+                    Text(AppStrings.deleteEverything(lang))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetAllConfirm = false }) {
-                    Text("Cancel")
+                    Text(AppStrings.cancel(lang))
                 }
             }
         )
