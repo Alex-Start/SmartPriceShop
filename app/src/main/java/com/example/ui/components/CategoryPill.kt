@@ -22,23 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.CategoryType
 import com.example.ui.theme.*
+import com.example.util.LocalAppCurrency
+import com.example.util.UnitPriceCalculator
 
 @Composable
 fun CategoryPill(
     category: String,
     modifier: Modifier = Modifier
 ) {
-    /*val (icon, bgColor, textColor, borderColor) = when (category.lowercase()) {
-        "dairy" -> Quadruple(Icons.Outlined.Egg, Color(0xFFE8F5E9), Color(0xFF1B5E20), Color(0xFFC8E6C9))
-        "fruits & veg", "fruits", "vegetables" -> Quadruple(Icons.Outlined.Eco, Color(0xFFF1F8E9), Color(0xFF33691E), Color(0xFFDCEDC8))
-        "meat & fish", "meat", "fish" -> Quadruple(Icons.Outlined.SetMeal, Color(0xFFFFEBEE), Color(0xFFB71C1C), Color(0xFFFFCDD2))
-        "bakery", "bread" -> Quadruple(Icons.Outlined.BakeryDining, Color(0xFFFFF3E0), Color(0xFFE65100), Color(0xFFFFE0B2))
-        "beverages", "drinks" -> Quadruple(Icons.Outlined.LocalCafe, Color(0xFFE1F5FE), Color(0xFF01579B), Color(0xFFB3E5FC))
-        "pantry" -> Quadruple(Icons.Outlined.Kitchen, Color(0xFFEDE7F6), Color(0xFF4A148C), Color(0xFFD1C4E9))
-        "snacks" -> Quadruple(Icons.Outlined.Fastfood, Color(0xFFFFF8E1), Color(0xFFF57F17), Color(0xFFFFECB3))
-        "household" -> Quadruple(Icons.Outlined.CleaningServices, Color(0xFFE0F2F1), Color(0xFF004D40), Color(0xFFB2DFDB))
-        else -> Quadruple(Icons.Outlined.ShoppingBag, HighDensityPillBg, HighDensityTextSecondary, HighDensityBorder)
-    }*/
 
     val categoryType = CategoryType.fromName(category)
     val icon = categoryType.icon
@@ -83,6 +74,7 @@ fun UnitPriceBadge(
     val bgColor = if (isCheapest) DealGreenBg else HighDensityInputBg
     val textColor = if (isCheapest) DealGreen else HighDensityTextSecondary
     val borderColor = if (isCheapest) DealGreenBorder else HighDensityBorder
+    val currentCurrency = LocalAppCurrency.current
 
     Row(
         modifier = modifier
@@ -93,7 +85,8 @@ fun UnitPriceBadge(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = String.format(java.util.Locale.US, "$%.2f %s", unitPrice, unitLabel.replace("$", "").trim()),
+            //text = String.format(java.util.Locale.US, "$%.2f %s", unitPrice, unitLabel.replace("$", "").trim()),
+            text = UnitPriceCalculator.formatUnitPrice(unitPrice, unitLabel, currentCurrency),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 10.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium

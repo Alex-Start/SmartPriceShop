@@ -323,24 +323,6 @@ class PriceRepository(private val database: AppDatabase) {
         categoryDao.deleteCategoryById(categoryId)
     }
 
-    /*suspend fun seedDefaultCategoriesIfEmpty() = withContext(Dispatchers.IO) {
-        val list = categoryDao.getAllCategoriesList()
-        if (list.isEmpty()) {
-            val defaults = listOf(
-                Category(name = "Dairy", colorHex = "#2563EB", isDefault = true, iconName = "egg"),
-                Category(name = "Fruits & Veg", colorHex = "#16A34A", isDefault = true, iconName = "nutrition"),
-                Category(name = "Meat & Fish", colorHex = "#DC2626", isDefault = true, iconName = "restaurant"),
-                Category(name = "Bakery", colorHex = "#D97706", isDefault = true, iconName = "bakery_dining"),
-                Category(name = "Beverages", colorHex = "#0284C7", isDefault = true, iconName = "local_cafe"),
-                Category(name = "Pantry", colorHex = "#7C3AED", isDefault = true, iconName = "kitchen"),
-                Category(name = "Snacks", colorHex = "#EA580C", isDefault = true, iconName = "cookie"),
-                Category(name = "Household", colorHex = "#0D9488", isDefault = true, iconName = "cleaning_services"),
-                Category(name = "Other", colorHex = "#64748B", isDefault = true, iconName = "category")
-            )
-            categoryDao.insertCategories(defaults)
-        }
-    }*/
-
     suspend fun seedDefaultCategoriesIfEmpty() =  withContext(Dispatchers.IO) {
             val categories = categoryDao.getAllCategoriesList()
             if (categories.isEmpty()) {

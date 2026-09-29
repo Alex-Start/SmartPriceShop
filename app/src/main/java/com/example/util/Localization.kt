@@ -44,27 +44,16 @@ enum class AppCurrency(
 
     companion object {
         fun fromCode(code: String): AppCurrency {
-            return entries.firstOrNull { it.code.equals(code, ignoreCase = true) } ?: USD
+            return entries.firstOrNull { it.code.equals(code, ignoreCase = true) } ?: CZK
         }
     }
 }
 
-val LocalAppCurrency = staticCompositionLocalOf { AppCurrency.USD }
+val LocalAppCurrency = staticCompositionLocalOf { AppCurrency.CZK }
 
 object AppStrings {
     const val ALL = "All"
     val defaultCategories = CategoryType.entries.map { it.displayName }
-        /*listOf(
-        "Dairy",
-        "Fruits & Veg",
-        "Meat & Fish",
-        "Bakery",
-        "Beverages",
-        "Pantry",
-        "Snacks",
-        "Household",
-        "Other"
-    )*/
 
     fun getCategoryName(category: String, lang: AppLanguage): String {
         if (category == ALL) {
