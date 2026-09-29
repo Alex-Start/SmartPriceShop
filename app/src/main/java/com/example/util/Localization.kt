@@ -122,60 +122,6 @@ object AppStrings {
 
             null -> category
         }
-
-        /*return when (category) {
-            ALL -> when (lang) {
-                AppLanguage.ENGLISH -> "All"
-                AppLanguage.UKRAINIAN -> "Всі"
-                AppLanguage.CZECH -> "Vše"
-            }
-            "Dairy" -> when (lang) {
-                AppLanguage.ENGLISH -> "Dairy"
-                AppLanguage.UKRAINIAN -> "Молочні продукти"
-                AppLanguage.CZECH -> "Mléčné výrobky"
-            }
-            "Fruits & Veg" -> when (lang) {
-                AppLanguage.ENGLISH -> "Fruits & Veg"
-                AppLanguage.UKRAINIAN -> "Овочі та фрукти"
-                AppLanguage.CZECH -> "Ovoce a zelenina"
-            }
-            "Meat & Fish" -> when (lang) {
-                AppLanguage.ENGLISH -> "Meat & Fish"
-                AppLanguage.UKRAINIAN -> "М'ясо та риба"
-                AppLanguage.CZECH -> "Maso a ryby"
-            }
-            "Bakery" -> when (lang) {
-                AppLanguage.ENGLISH -> "Bakery"
-                AppLanguage.UKRAINIAN -> "Випічка"
-                AppLanguage.CZECH -> "Pečivo"
-            }
-            "Beverages" -> when (lang) {
-                AppLanguage.ENGLISH -> "Beverages"
-                AppLanguage.UKRAINIAN -> "Напої"
-                AppLanguage.CZECH -> "Nápoje"
-            }
-            "Pantry" -> when (lang) {
-                AppLanguage.ENGLISH -> "Pantry"
-                AppLanguage.UKRAINIAN -> "Бакалія"
-                AppLanguage.CZECH -> "Trvanlivé potraviny"
-            }
-            "Snacks" -> when (lang) {
-                AppLanguage.ENGLISH -> "Snacks"
-                AppLanguage.UKRAINIAN -> "Снеки та солодощі"
-                AppLanguage.CZECH -> "Pochutiny"
-            }
-            "Household" -> when (lang) {
-                AppLanguage.ENGLISH -> "Household"
-                AppLanguage.UKRAINIAN -> "Побутова хімія"
-                AppLanguage.CZECH -> "Domácnost"
-            }
-            "Other" -> when (lang) {
-                AppLanguage.ENGLISH -> "Other"
-                AppLanguage.UKRAINIAN -> "Інше"
-                AppLanguage.CZECH -> "Ostatní"
-            }
-            else -> category
-        }*/
     }
 
     fun appName(lang: AppLanguage) = "Smart Price"
