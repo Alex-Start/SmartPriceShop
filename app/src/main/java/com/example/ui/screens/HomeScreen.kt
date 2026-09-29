@@ -196,7 +196,7 @@ fun HomeScreen(
                                         )
                                         Icon(
                                             imageVector = Icons.Default.ArrowDropDown,
-                                            contentDescription = "Select Language",
+                                            contentDescription = AppStrings.selectLanguage(currentLang),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(14.dp)
                                         )
@@ -262,7 +262,7 @@ fun HomeScreen(
                                         )
                                         Icon(
                                             imageVector = Icons.Default.ArrowDropDown,
-                                            contentDescription = "Select Currency",
+                                            contentDescription = AppStrings.selectCurrency(currentLang),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(14.dp)
                                         )
@@ -353,12 +353,12 @@ fun HomeScreen(
                                             text = {
                                                 Column {
                                                     Text(
-                                                        text = "AI API key",
+                                                        text = AppStrings.aiApiKey(currentLang),
                                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                                         color = MaterialTheme.colorScheme.onSurface
                                                     )
                                                     Text(
-                                                        text = if (geminiApiKey.isBlank()) "Tap to add your Gemini key" else "Key saved on this device",
+                                                        text = if (geminiApiKey.isBlank()) AppStrings.tapToAddGeminiKey(currentLang) else AppStrings.keySavedOnDevice(currentLang),
                                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )

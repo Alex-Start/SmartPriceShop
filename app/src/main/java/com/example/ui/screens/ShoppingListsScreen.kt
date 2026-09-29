@@ -38,7 +38,9 @@ import com.example.data.model.ShoppingListItem
 import com.example.data.model.ShoppingListWithItems
 import com.example.ui.theme.*
 import com.example.util.AppCurrency
+import com.example.util.AppStrings
 import com.example.util.LocalAppCurrency
+import com.example.util.LocalAppLanguage
 import com.example.util.UnitPriceCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +73,7 @@ fun ShoppingListsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lang = LocalAppLanguage.current
     val currentCurrency = LocalAppCurrency.current
     var showCreateListDialog by remember { mutableStateOf(false) }
     var showAddItemDialog by remember { mutableStateOf(false) }
@@ -98,7 +101,7 @@ fun ShoppingListsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Shopping Lists",
+                text = AppStrings.shoppingListsTitle(lang),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = HighDensityTextPrimary
@@ -114,7 +117,7 @@ fun ShoppingListsScreen(
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("New List", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(AppStrings.newList(lang), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -211,12 +214,12 @@ fun ShoppingListsScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "No Shopping Lists Yet",
+                        text = AppStrings.noShoppingListsYet(lang),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Create your first shopping list and add products from your price comparison database.",
+                        text = AppStrings.noShoppingListsHint(lang),
                         style = MaterialTheme.typography.bodySmall.copy(color = HighDensityTextSecondary),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -226,7 +229,7 @@ fun ShoppingListsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = SapphireBrand),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Create Shopping List")
+                        Text(AppStrings.createShoppingList(lang))
                     }
                 }
             }
@@ -256,7 +259,7 @@ fun ShoppingListsScreen(
                             )
                             if (activeList.targetShop != null) {
                                 Text(
-                                    text = "Target Store: ${activeList.targetShop.name}",
+                                    text = "${AppStrings.targetStoreLabel(lang)}: ${activeList.targetShop.name}",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = SapphireBrand,
                                         fontWeight = FontWeight.SemiBold
@@ -288,7 +291,7 @@ fun ShoppingListsScreen(
                                         }
                                     }
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("Shopping List", listText))
+                                    clipboard.setPrimaryClip(ClipData.newPlainText(AppStrings.shoppingListsTitle(lang), listText))
                                     Toast.makeText(context, "Shopping list copied to clipboard!", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.size(32.dp)
@@ -316,7 +319,7 @@ fun ShoppingListsScreen(
                     ) {
                         Column {
                             Text(
-                                text = "Estimated Total",
+                                text = AppStrings.estimatedTotal(lang),
                                 style = MaterialTheme.typography.labelSmall.copy(color = HighDensityTextSecondary)
                             )
                             Text(
@@ -366,7 +369,7 @@ fun ShoppingListsScreen(
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Item", fontWeight = FontWeight.SemiBold)
+                    Text(AppStrings.addItem(lang), fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -378,7 +381,7 @@ fun ShoppingListsScreen(
                 ) {
                     Icon(imageVector = Icons.Outlined.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Scan Item", fontSize = 12.sp)
+                    Text(AppStrings.scanBarcode(lang), fontSize = 12.sp)
                 }
             }
 
@@ -409,12 +412,12 @@ fun ShoppingListsScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Your shopping list is empty",
+                                text = AppStrings.noItemsInList(lang),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Tap 'Add Item' to pick from your goods database",
+                                text = AppStrings.addItemsHint(lang),
                                 style = MaterialTheme.typography.bodySmall.copy(color = HighDensityTextSecondary)
                             )
                         }
@@ -467,7 +470,7 @@ fun ShoppingListsScreen(
                                 )
 
                                 Text(
-                                    text = "Clear All",
+                                    text = AppStrings.clearCompleted(lang),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = Color(0xFFDC2626),
                                         fontWeight = FontWeight.SemiBold
@@ -535,8 +538,8 @@ fun ShoppingListsScreen(
     if (showDeleteConfirmDialog != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = null },
-            title = { Text("Delete Shopping List?") },
-            text = { Text("Are you sure you want to delete this shopping list and all its items?") },
+            title = { Text(AppStrings.deleteListConfirm(lang)) },
+            text = { Text(AppStrings.deleteListWarning(lang)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -545,12 +548,12 @@ fun ShoppingListsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
-                    Text("Delete")
+                    Text(AppStrings.delete(lang))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirmDialog = null }) {
-                    Text("Cancel")
+                    Text(AppStrings.cancel(lang))
                 }
             }
         )
@@ -706,6 +709,7 @@ fun CreateShoppingListDialog(
     onDismiss: () -> Unit,
     onConfirm: (name: String, colorHex: String, targetShopId: Long?) -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     var name by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf("#1E40AF") }
     var selectedShopId by remember { mutableStateOf<Long?>(null) }
@@ -732,7 +736,7 @@ fun CreateShoppingListDialog(
                     .padding(20.dp)
             ) {
                 Text(
-                    text = "Create Shopping List",
+                    text = AppStrings.createListTitle(lang),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = HighDensityTextPrimary
@@ -744,8 +748,8 @@ fun CreateShoppingListDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("List Name *") },
-                    placeholder = { Text("e.g. Weekly Groceries, Costco Run, BBQ") },
+                    label = { Text("${AppStrings.listNameLabel(lang)} *") },
+                    placeholder = { Text(AppStrings.listNameExample(lang)) },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -774,7 +778,7 @@ fun CreateShoppingListDialog(
 
                 // Color Theme Selector
                 Text(
-                    text = "List Color Theme",
+                    text = AppStrings.listColorTheme(lang),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = HighDensityTextSecondary
@@ -810,7 +814,7 @@ fun CreateShoppingListDialog(
                 // Target Supermarket (Optional)
                 if (allShops.isNotEmpty()) {
                     Text(
-                        text = "Preferred Supermarket (Optional)",
+                        text = AppStrings.preferredSupermarket(lang),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = HighDensityTextSecondary
@@ -848,7 +852,7 @@ fun CreateShoppingListDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(AppStrings.cancel(lang))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -861,7 +865,7 @@ fun CreateShoppingListDialog(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = SapphireBrand)
                     ) {
-                        Text("Create List")
+                        Text(AppStrings.createListTitle(lang))
                     }
                 }
             }

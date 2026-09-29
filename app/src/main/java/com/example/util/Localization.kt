@@ -396,6 +396,348 @@ object AppStrings {
         AppLanguage.CZECH -> "Správa supermarketů"
     }
 
+    fun selectCurrency(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Select Currency"
+        AppLanguage.UKRAINIAN -> "Вибрати валюту"
+        AppLanguage.CZECH -> "Vybrat měnu"
+    }
+
+    fun shoppingListsTitle(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Shopping Lists"
+        AppLanguage.UKRAINIAN -> "Списки покупок"
+        AppLanguage.CZECH -> "Nákupní seznamy"
+    }
+
+    fun noShoppingListsYet(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "No Shopping Lists Yet"
+        AppLanguage.UKRAINIAN -> "Ще немає списків покупок"
+        AppLanguage.CZECH -> "Zatím žádné nákupní seznamy"
+    }
+
+    fun noShoppingListsHint(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Create your first shopping list and add products from your price comparison database."
+        AppLanguage.UKRAINIAN -> "Створіть свій перший список покупок і додавайте товари з бази порівняння цін."
+        AppLanguage.CZECH -> "Vytvořte svůj první nákupní seznam a přidejte produkty z databáze srovnání cen."
+    }
+
+    fun createShoppingList(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Create Shopping List"
+        AppLanguage.UKRAINIAN -> "Створити список покупок"
+        AppLanguage.CZECH -> "Vytvořit nákupní seznam"
+    }
+
+    fun addNewSupermarket(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Add New Supermarket"
+        AppLanguage.UKRAINIAN -> "Додати новий супермаркет"
+        AppLanguage.CZECH -> "Přidat nový supermarket"
+    }
+
+    fun newSupermarketDetails(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "New Supermarket Details"
+        AppLanguage.UKRAINIAN -> "Дані нового супермаркету"
+        AppLanguage.CZECH -> "Detaily nového supermarketu"
+    }
+
+    fun addressBranch(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Address / Branch"
+        AppLanguage.UKRAINIAN -> "Адреса / Філія"
+        AppLanguage.CZECH -> "Adresa / Pobočka"
+    }
+
+    fun registeredSupermarkets(lang: AppLanguage, count: Int) = when (lang) {
+        AppLanguage.ENGLISH -> "Registered Supermarkets ($count)"
+        AppLanguage.UKRAINIAN -> "Зареєстровані супермаркети ($count)"
+        AppLanguage.CZECH -> "Registrované supermarkety ($count)"
+    }
+
+    fun saveSupermarket(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Save Supermarket"
+        AppLanguage.UKRAINIAN -> "Зберегти супермаркет"
+        AppLanguage.CZECH -> "Uložit supermarket"
+    }
+
+    fun addToShoppingList(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Add to Shopping List"
+        AppLanguage.UKRAINIAN -> "Додати до списку покупок"
+        AppLanguage.CZECH -> "Přidat do nákupního seznamu"
+    }
+
+    fun quantityLabel(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Quantity:"
+        AppLanguage.UKRAINIAN -> "Кількість:"
+        AppLanguage.CZECH -> "Množství:"
+    }
+
+    fun selectListLabel(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Select List:"
+        AppLanguage.UKRAINIAN -> "Виберіть список:"
+        AppLanguage.CZECH -> "Vyberte seznam:"
+    }
+
+    fun createAndAdd(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Create & Add"
+        AppLanguage.UKRAINIAN -> "Створити та додати"
+        AppLanguage.CZECH -> "Vytvořit a přidat"
+    }
+
+    fun listNameHint(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "List name (e.g. Costco Run)"
+        AppLanguage.UKRAINIAN -> "Назва списку (наприклад, Поход до Costco)"
+        AppLanguage.CZECH -> "Název seznamu (např. Nákup v Costcu)"
+    }
+
+    fun noShoppingListsCreated(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "No shopping lists created yet."
+        AppLanguage.UKRAINIAN -> "Поки що немає списків покупок."
+        AppLanguage.CZECH -> "Zatím nebyly vytvořeny žádné nákupní seznamy."
+    }
+
+    fun createNewShoppingList(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Create New Shopping List"
+        AppLanguage.UKRAINIAN -> "Створити новий список покупок"
+        AppLanguage.CZECH -> "Vytvořit nový nákupní seznam"
+    }
+
+    fun noHistoricalPriceLogs(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "No historical price logs recorded yet"
+        AppLanguage.UKRAINIAN -> "Ще немає записів історичних цін"
+        AppLanguage.CZECH -> "Zatím nejsou záznamy o historických cenách"
+    }
+
+    fun priceTrendOverTime(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Price Trend Over Time"
+        AppLanguage.UKRAINIAN -> "Динаміка цін у часі"
+        AppLanguage.CZECH -> "Trend ceny v čase"
+    }
+
+    fun backupAndSync(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Backup & Data Sync"
+        AppLanguage.UKRAINIAN -> "Резервне копіювання та синхронізація"
+        AppLanguage.CZECH -> "Zálohování a synchronizace dat"
+    }
+
+    fun aiApiKey(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "AI API key"
+        AppLanguage.UKRAINIAN -> "Ключ API AI"
+        AppLanguage.CZECH -> "Klíč AI API"
+    }
+
+    fun tapToAddGeminiKey(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Tap to add your Gemini key"
+        AppLanguage.UKRAINIAN -> "Натисніть, щоб додати ключ Gemini"
+        AppLanguage.CZECH -> "Klepněte pro přidání klíče Gemini"
+    }
+
+    fun keySavedOnDevice(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Key saved on this device"
+        AppLanguage.UKRAINIAN -> "Ключ збережено на цьому пристрої"
+        AppLanguage.CZECH -> "Klíč je uložen na tomto zařízení"
+    }
+
+    fun loadedFileReadyToImport(lang: AppLanguage, charCount: Int) = when (lang) {
+        AppLanguage.ENGLISH -> "Loaded file ($charCount chars). Ready to import."
+        AppLanguage.UKRAINIAN -> "Файл завантажено ($charCount символів). Готово до імпорту."
+        AppLanguage.CZECH -> "Soubor načten ($charCount znaků). Připraven k importu."
+    }
+
+    fun failedToReadFile(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Failed to read file"
+        AppLanguage.UKRAINIAN -> "Не вдалося прочитати файл"
+        AppLanguage.CZECH -> "Nepodařilo se přečíst soubor"
+    }
+
+    fun backupReadyToShare(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Backup ready to share/save."
+        AppLanguage.UKRAINIAN -> "Резервну копію готово поділитися/зберегти."
+        AppLanguage.CZECH -> "Záloha je připravena ke sdílení/uložení."
+    }
+
+    fun exportZipManifest(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Export ZIP (manifest+images)"
+        AppLanguage.UKRAINIAN -> "Експорт ZIP (маніфест+зображення)"
+        AppLanguage.CZECH -> "Export ZIP (manifest+obrázky)"
+    }
+
+    fun exportZipSave(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Export ZIP (Save...)"
+        AppLanguage.UKRAINIAN -> "Експорт ZIP (Зберегти...)"
+        AppLanguage.CZECH -> "Export ZIP (Uložit...)"
+    }
+
+    fun shareBackup(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Share Backup"
+        AppLanguage.UKRAINIAN -> "Поділитися резервною копією"
+        AppLanguage.CZECH -> "Sdílet zálohu"
+    }
+
+    fun pickBackupFile(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Pick Backup File (.json or .zip)"
+        AppLanguage.UKRAINIAN -> "Вибрати файл резервної копії (.json або .zip)"
+        AppLanguage.CZECH -> "Vyberte soubor zálohy (.json nebo .zip)"
+    }
+
+    fun backupJsonContent(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Backup JSON Content"
+        AppLanguage.UKRAINIAN -> "Вміст резервної копії JSON"
+        AppLanguage.CZECH -> "Obsah zálohy JSON"
+    }
+
+    fun pasteJsonBackupString(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Paste JSON backup string here..."
+        AppLanguage.UKRAINIAN -> "Вставте рядок резервної копії JSON тут..."
+        AppLanguage.CZECH -> "Vložte řetězec zálohy JSON zde..."
+    }
+
+    fun overwriteExistingDatabase(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Overwrite Existing Database"
+        AppLanguage.UKRAINIAN -> "Перезаписати поточну базу даних"
+        AppLanguage.CZECH -> "Přepsat existující databázi"
+    }
+
+    fun mergeWithExistingData(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Merge with Existing Data"
+        AppLanguage.UKRAINIAN -> "Об'єднати з наявними даними"
+        AppLanguage.CZECH -> "Sloučit s existujícími daty"
+    }
+
+    fun replaceAllDataWarning(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Replaces all current goods, shops and history."
+        AppLanguage.UKRAINIAN -> "Перезаписує всі поточні товари, магазини та історію."
+        AppLanguage.CZECH -> "Přepíše veškeré aktuální zboží, obchody a historii."
+    }
+
+    fun preserveDataWarning(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Preserves current items and appends new records."
+        AppLanguage.UKRAINIAN -> "Зберігає поточні товари та додає нові записи."
+        AppLanguage.CZECH -> "Zachovává aktuální položky a přidává nové záznamy."
+    }
+
+    fun importAndRestoreData(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Import & Restore Data"
+        AppLanguage.UKRAINIAN -> "Імпорт та відновлення даних"
+        AppLanguage.CZECH -> "Import a obnovení dat"
+    }
+
+    fun cleanUpMaintenance(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Clean Up & Maintenance"
+        AppLanguage.UKRAINIAN -> "Очищення та обслуговування"
+        AppLanguage.CZECH -> "Úklid a údržba"
+    }
+
+    fun resetAll(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Reset All"
+        AppLanguage.UKRAINIAN -> "Скинути все"
+        AppLanguage.CZECH -> "Resetovat vše"
+    }
+
+    fun reloadSampleDataset(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Re-load Sample Supermarket Dataset"
+        AppLanguage.UKRAINIAN -> "Перезавантажити зразкові дані супермаркетів"
+        AppLanguage.CZECH -> "Znovu načíst ukázková data supermarketů"
+    }
+
+    fun clearAllPriceHistory(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Clear All Price History?"
+        AppLanguage.UKRAINIAN -> "Очистити всю історію цін?"
+        AppLanguage.CZECH -> "Vymazat veškerou historii cen?"
+    }
+
+    fun clearHistoryWarning(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "This will purge all historical price points across all goods and supermarkets. Current active prices will remain untouched."
+        AppLanguage.UKRAINIAN -> "Це видалить усі історичні записи цін для всіх товарів і супермаркетів. Поточні активні ціни залишаться без змін."
+        AppLanguage.CZECH -> "Tím se odstraní všechny historické cenové záznamy pro veškeré zboží a supermarkety. Aktuální ceny zůstanou beze změny."
+    }
+
+    fun deleteEverything(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Delete Everything"
+        AppLanguage.UKRAINIAN -> "Видалити все"
+        AppLanguage.CZECH -> "Smazat vše"
+    }
+
+    fun resetEntireDatabase(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Reset Entire Database?"
+        AppLanguage.UKRAINIAN -> "Скинути всю базу даних?"
+        AppLanguage.CZECH -> "Resetovat celou databázi?"
+    }
+
+    fun resetDatabaseWarning(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "This will delete all products, registered supermarkets, price records, and price history permanently. This action cannot be undone."
+        AppLanguage.UKRAINIAN -> "Це назавжди видалить усі товари, зареєстровані супермаркети, записи про ціни та історію цін. Цю дію неможливо скасувати."
+        AppLanguage.CZECH -> "Tím se trvale odstraní veškeré produkty, registrované supermarkety, cenové záznamy a historie cen. Tuto akci nelze vrátit zpět."
+    }
+
+    fun allPriceHistoryCleared(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "All price history records cleared."
+        AppLanguage.UKRAINIAN -> "Усі записи історії цін очищено."
+        AppLanguage.CZECH -> "Všechny záznamy historie cen byly vymazány."
+    }
+
+    fun databaseResetComplete(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Database has been completely reset."
+        AppLanguage.UKRAINIAN -> "Базу даних повністю скинуто."
+        AppLanguage.CZECH -> "Databáze byla úplně resetována."
+    }
+
+    fun placeholderExampleSupermarket(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "e.g. Costco, Trader Joe's, Target"
+        AppLanguage.UKRAINIAN -> "напр. Costco, Trader Joe's, Target"
+        AppLanguage.CZECH -> "např. Costco, Trader Joe's, Target"
+    }
+
+    fun placeholderExampleBranch(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "e.g. Downtown Branch, North Mall"
+        AppLanguage.UKRAINIAN -> "напр. Центр міста, Північний ТРЦ"
+        AppLanguage.CZECH -> "např. Centrum města, Severní nákupní centrum"
+    }
+
+    fun listNameExample(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "e.g. Weekly Groceries, Costco Run, BBQ"
+        AppLanguage.UKRAINIAN -> "напр. Щотижневі продукти, Поход до Costco, BBQ"
+        AppLanguage.CZECH -> "např. Týdenní nákupy, Nákup v Costcu, BBQ"
+    }
+
+    fun listColorTheme(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "List Color Theme"
+        AppLanguage.UKRAINIAN -> "Колірна схема списку"
+        AppLanguage.CZECH -> "Barevné téma seznamu"
+    }
+
+    fun preferredSupermarket(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Preferred Supermarket (Optional)"
+        AppLanguage.UKRAINIAN -> "Бажаний супермаркет (необов'язково)"
+        AppLanguage.CZECH -> "Preferovaný supermarket (volitelné)"
+    }
+
+    fun deleteListWarning(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Are you sure you want to delete this shopping list and all its items?"
+        AppLanguage.UKRAINIAN -> "Ви впевнені, що хочете видалити цей список покупок і всі його товари?"
+        AppLanguage.CZECH -> "Opravdu chcete smazat tento nákupní seznam a všechny jeho položky?"
+    }
+
+    fun toBuy(lang: AppLanguage, count: Int) = when (lang) {
+        AppLanguage.ENGLISH -> "TO BUY ($count)"
+        AppLanguage.UKRAINIAN -> "ПОКУПКА ($count)"
+        AppLanguage.CZECH -> "K NÁKUPU ($count)"
+    }
+
+    fun purchased(lang: AppLanguage, count: Int) = when (lang) {
+        AppLanguage.ENGLISH -> "PURCHASED ($count)"
+        AppLanguage.UKRAINIAN -> "КУПЛЕНО ($count)"
+        AppLanguage.CZECH -> "KOUPENO ($count)"
+    }
+
+    fun shareList(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Share"
+        AppLanguage.UKRAINIAN -> "Поділитися"
+        AppLanguage.CZECH -> "Sdílet"
+    }
+
+    fun closeList(lang: AppLanguage) = when (lang) {
+        AppLanguage.ENGLISH -> "Delete"
+        AppLanguage.UKRAINIAN -> "Видалити"
+        AppLanguage.CZECH -> "Smazat"
+    }
+
     fun addStore(lang: AppLanguage) = when (lang) {
         AppLanguage.ENGLISH -> "Add Supermarket"
         AppLanguage.UKRAINIAN -> "Додати супермаркет"

@@ -26,8 +26,10 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.Good
 import com.example.data.model.ShoppingListWithItems
 import com.example.ui.theme.*
+import com.example.util.AppStrings
 import com.example.util.UnitPriceCalculator
 import com.example.util.LocalAppCurrency
+import com.example.util.LocalAppLanguage
 
 @Composable
 fun AddToShoppingListDialog(
@@ -37,6 +39,7 @@ fun AddToShoppingListDialog(
     onAddToList: (listId: Long, quantity: Double) -> Unit,
     onCreateNewListAndAdd: (listName: String, quantity: Double) -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     var quantity by remember { mutableDoubleStateOf(1.0) }
     var showCreateNewList by remember { mutableStateOf(false) }
     var newListName by remember { mutableStateOf("") }
@@ -85,7 +88,7 @@ fun AddToShoppingListDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Add to Shopping List",
+                                text = AppStrings.addToShoppingList(lang),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = HighDensityTextPrimary
@@ -102,7 +105,7 @@ fun AddToShoppingListDialog(
                     }
 
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = HighDensityTextSecondary)
+                        Icon(imageVector = Icons.Default.Close, contentDescription = AppStrings.close(lang), tint = HighDensityTextSecondary)
                     }
                 }
 
@@ -120,7 +123,7 @@ fun AddToShoppingListDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Quantity:",
+                        text = AppStrings.quantityLabel(lang),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                             color = HighDensityTextPrimary
@@ -168,7 +171,7 @@ fun AddToShoppingListDialog(
 
                 // Choose Shopping List
                 Text(
-                    text = "Select List:",
+                    text = AppStrings.selectListLabel(lang),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = HighDensityTextSecondary
@@ -185,7 +188,7 @@ fun AddToShoppingListDialog(
                         OutlinedTextField(
                             value = newListName,
                             onValueChange = { newListName = it },
-                            placeholder = { Text("List name (e.g. Costco Run)") },
+                            placeholder = { Text(AppStrings.listNameHint(lang)) },
                             singleLine = true,
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
@@ -202,13 +205,13 @@ fun AddToShoppingListDialog(
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = SapphireBrand)
                         ) {
-                            Text("Create & Add")
+                            Text(AppStrings.createAndAdd(lang))
                         }
                     }
                 } else {
                     if (shoppingLists.isEmpty()) {
                         Text(
-                            text = "No shopping lists created yet.",
+                            text = AppStrings.noShoppingListsCreated(lang),
                             style = MaterialTheme.typography.bodySmall.copy(color = HighDensityTextSecondary)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -219,7 +222,7 @@ fun AddToShoppingListDialog(
                         ) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Create New Shopping List")
+                            Text(AppStrings.createNewShoppingList(lang))
                         }
                     } else {
                         LazyColumn(

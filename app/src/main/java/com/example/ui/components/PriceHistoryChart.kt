@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.PriceHistoryWithShop
 import com.example.ui.theme.*
 import com.example.util.AppCurrency
+import com.example.util.AppStrings
 import com.example.util.LocalAppCurrency
+import com.example.util.LocalAppLanguage
 import com.example.util.UnitPriceCalculator
 import java.text.SimpleDateFormat
 import java.util.*
@@ -40,6 +42,7 @@ fun PriceHistoryChart(
     historyList: List<PriceHistoryWithShop>,
     modifier: Modifier = Modifier
 ) {
+    val lang = LocalAppLanguage.current
     val currentCurrency = LocalAppCurrency.current
 
     if (historyList.isEmpty()) {
@@ -60,7 +63,7 @@ fun PriceHistoryChart(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "No historical price logs recorded yet",
+                    text = AppStrings.noHistoricalPriceLogs(lang),
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                     color = HighDensityTextSecondary
                 )
@@ -105,7 +108,7 @@ fun PriceHistoryChart(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Price Trend Over Time",
+                        text = AppStrings.priceTrendOverTime(lang),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
                             color = HighDensityTextPrimary
